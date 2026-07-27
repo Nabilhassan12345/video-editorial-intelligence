@@ -4,25 +4,53 @@
 
 @layer base {
   body {
-    @apply bg-[#0B0F19] text-gray-100 antialiased selection:bg-indigo-500/30;
+    @apply bg-[#000000] text-gray-100 antialiased selection:bg-white/20 font-sans;
+    /* Subtle mesh gradient for background depth, non-intrusive */
     background-image: 
-      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-      radial-gradient(at 50% 0%, hsla(225,39%,30%,0.05) 0, transparent 50%), 
-      radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+      radial-gradient(ellipse at top center, rgba(255,255,255,0.03) 0%, transparent 60%),
+      radial-gradient(ellipse at bottom left, rgba(255,255,255,0.01) 0%, transparent 40%);
     background-attachment: fixed;
   }
 }
 
 @layer components {
-  .glass-panel {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl;
+  /* Ultra-minimalist sleek panels */
+  .premium-panel {
+    @apply bg-[#0A0A0A] border border-[#222222] rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)];
   }
   
-  .glass-input {
-    @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all duration-300;
+  /* Focus on subtle borders and clean typography instead of heavy glowing rings */
+  .premium-input {
+    @apply w-full bg-[#050505] border border-[#222222] rounded-lg px-4 py-3 text-gray-200 placeholder-gray-600 transition-all duration-300;
+    @apply focus:outline-none focus:border-[#444444] focus:bg-[#080808];
   }
 
-  .glass-button {
-    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:pointer-events-none;
+  /* Sleek, sharp, high-contrast button */
+  .premium-button {
+    @apply bg-white text-black font-medium px-6 py-3 rounded-lg transition-all duration-300;
+    @apply hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none;
+    @apply flex items-center justify-center space-x-2 text-sm;
   }
+
+  /* Alternate dark button */
+  .premium-button-dark {
+    @apply bg-[#111] text-white border border-[#333] font-medium px-6 py-3 rounded-lg transition-all duration-300;
+    @apply hover:bg-[#1a1a1a] hover:border-[#444] disabled:opacity-50 disabled:pointer-events-none;
+  }
+}
+
+/* Custom scrollbar for textareas and body */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

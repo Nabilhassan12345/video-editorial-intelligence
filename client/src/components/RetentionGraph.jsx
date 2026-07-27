@@ -4,49 +4,42 @@ import {
   Area,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceDot,
-  ReferenceLine
+  ReferenceDot
 } from 'recharts';
 
 export default function RetentionGraph({ dropOffRisks }) {
-  // Generate a fake retention curve that starts at 100% and decays
-  // We'll create 20 data points over a hypothetical 10 minute video.
   const data = useMemo(() => {
     let retention = 100;
     const curve = [];
-    const totalPoints = 20;
+    const totalPoints = 40; // Higher fidelity for smoother curve
 
     for (let i = 0; i <= totalPoints; i++) {
       const minutes = (i / totalPoints) * 10;
       
       // Natural decay
-      retention = retention - (Math.random() * 3 + 1);
+      retention = retention - (Math.random() * 1.5 + 0.5);
 
-      // Add major drops near the dropOffRisk timestamps
-      // Timestamps usually look like "[01:45]"
       const hasDropOff = dropOffRisks.some(risk => {
-        const timeStr = risk.timestamp.replace(/\[|\]/g, ''); // "01:45"
+        const timeStr = risk.timestamp.replace(/\[|\]/g, ''); 
         const [min, sec] = timeStr.split(':').map(Number);
         if (min !== undefined && sec !== undefined) {
           const riskMinutes = min + (sec / 60);
-          // If this point is close to the risk timestamp, create a big drop
-          return Math.abs(minutes - riskMinutes) < 0.5;
+          return Math.abs(minutes - riskMinutes) < 0.25;
         }
         return false;
       });
 
       if (hasDropOff) {
-        retention -= 15; // big drop
+        retention -= 8; 
       }
       
       if (retention < 0) retention = 0;
 
       curve.push({
         time: `${Math.floor(minutes)}:${String(Math.floor((minutes % 1) * 60)).padStart(2, '0')}`,
-        retention: Math.max(retention, 5), // Keep it above 5% just for visuals
+        retention: Math.max(retention, 5), 
         isDropOff: hasDropOff
       });
     }
@@ -55,47 +48,56 @@ export default function RetentionGraph({ dropOffRisks }) {
   }, [dropOffRisks]);
 
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-[280px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
           <defs>
             <linearGradient id="colorRetention" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#ffffff" stopOpacity={0.1}/>
+              <stop offset="95%" stopColor="#ffffff" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
           <XAxis 
             dataKey="time" 
-            stroke="#9ca3af" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
+            stroke="#444" 
+            tick={{ fill: '#666', fontSize: 11, fontFamily: 'Inter' }}
             tickLine={false}
             axisLine={false}
-            minTickGap={30}
+            minTickGap={40}
+            dy={10}
           />
           <YAxis 
-            stroke="#9ca3af" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
+            stroke="#444" 
+            tick={{ fill: '#666', fontSize: 11, fontFamily: 'Inter' }}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${Math.round(value)}%`}
+            dx={-10}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: 'rgba(17, 24, 39, 0.8)', borderColor: '#374151', borderRadius: '0.5rem', color: '#fff' }}
-            itemStyle={{ color: '#818cf8' }}
-            labelStyle={{ color: '#9ca3af', marginBottom: '4px' }}
+            contentStyle={{ 
+              backgroundColor: '#0A0A0A', 
+              borderColor: '#222', 
+              borderRadius: '8px', 
+              color: '#fff',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+              fontFamily: 'Inter',
+              fontSize: '12px'
+            }}
+            itemStyle={{ color: '#fff' }}
+            labelStyle={{ color: '#888', marginBottom: '4px' }}
+            cursor={{ stroke: '#333', strokeWidth: 1, strokeDasharray: '4 4' }}
           />
           
           <Area 
             type="monotone" 
             dataKey="retention" 
-            stroke="#6366f1" 
-            strokeWidth={3}
+            stroke="#ffffff" 
+            strokeWidth={1.5}
             fillOpacity={1} 
             fill="url(#colorRetention)" 
           />
 
-          {/* Highlight Drop-offs */}
           {data.map((entry, index) => {
             if (entry.isDropOff) {
               return (
@@ -103,10 +105,10 @@ export default function RetentionGraph({ dropOffRisks }) {
                   key={index} 
                   x={entry.time} 
                   y={entry.retention} 
-                  r={5} 
-                  fill="#ef4444" 
-                  stroke="#111827" 
-                  strokeWidth={2} 
+                  r={4} 
+                  fill="#000" 
+                  stroke="#fff" 
+                  strokeWidth={1.5} 
                 />
               );
             }

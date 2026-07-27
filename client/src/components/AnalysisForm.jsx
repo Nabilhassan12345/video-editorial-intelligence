@@ -16,42 +16,41 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-panel p-6 md:p-8"
+      className="premium-panel p-6 md:p-8 relative"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="transcript" className="block text-sm font-medium text-gray-300 ml-1">
-            Raw Transcript
+        <div className="space-y-3">
+          <label htmlFor="transcript" className="block text-xs font-semibold text-[#888888] uppercase tracking-wider">
+            Raw Transcript Input
           </label>
           <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
             <textarea
               id="transcript"
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               placeholder="00:00 Today I'm going to show you how I made $10,000 in a single week using a strategy almost no one is talking about..."
-              className="glass-input min-h-[200px] resize-y relative z-10 font-mono text-sm leading-relaxed"
+              className="premium-input min-h-[160px] resize-y font-mono text-sm leading-relaxed"
               required
               disabled={isAnalyzing}
             />
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
             disabled={isAnalyzing || !transcript.trim()}
-            className="glass-button flex items-center space-x-2 w-full md:w-auto justify-center"
+            className="premium-button w-full md:w-auto"
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Analyzing Pipeline...</span>
+                <Loader2 className="w-4 h-4 animate-spin text-black" />
+                <span>Running Inference...</span>
               </>
             ) : (
               <>
-                <Play className="w-5 h-5" />
-                <span>Analyze Video</span>
+                <Play className="w-4 h-4 fill-black" />
+                <span>Analyze Sequence</span>
               </>
             )}
           </button>

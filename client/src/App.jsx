@@ -35,22 +35,23 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-12">
-        {/* Header */}
-        <header className="text-center space-y-4 pt-8">
+    <div className="min-h-screen p-4 md:p-8 lg:p-12 relative overflow-hidden">
+      
+      <div className="max-w-5xl mx-auto space-y-12 relative z-10">
+        {/* Header - Ultra minimalist */}
+        <header className="text-center space-y-4 pt-12 pb-4">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center justify-center p-3 bg-indigo-500/10 rounded-2xl mb-4 text-indigo-400"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center justify-center p-2 mb-2"
           >
-            <Activity className="w-8 h-8" />
+            <Activity className="w-6 h-6 text-white" />
           </motion.div>
           <motion.h1 
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400"
+            className="text-4xl md:text-5xl font-bold tracking-tight text-white"
           >
             Video Editorial Intelligence
           </motion.h1>
@@ -58,9 +59,9 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-400 text-lg max-w-2xl mx-auto"
+            className="text-[#888888] text-lg max-w-2xl mx-auto font-light"
           >
-            Analyze video retention and content quality using ML-powered transcript intelligence.
+            Predictive viewer retention and structural content analysis.
           </motion.p>
         </header>
 
@@ -72,7 +73,7 @@ function App() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-center"
+              className="p-4 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400 text-center text-sm"
             >
               {error}
             </motion.div>
@@ -85,7 +86,7 @@ function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} // Custom easing for premium feel
               >
                 <ResultsDisplay results={results} />
               </motion.div>
