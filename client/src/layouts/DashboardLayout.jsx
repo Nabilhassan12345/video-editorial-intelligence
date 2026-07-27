@@ -12,13 +12,13 @@ export default function DashboardLayout() {
     { name: 'Model Insights', path: '/model', icon: Cpu },
   ];
 
-  const secondaryNavItems = [
-    { name: 'API Keys', path: '#', icon: Key },
-    { name: 'Billing', path: '#', icon: CreditCard },
-    { name: 'Settings', path: '#', icon: Settings },
+  const workspaceNavItems = [
+    { name: 'API Keys', path: '/api-keys', icon: Key, disabled: false },
+    { name: 'Billing', path: '#', icon: CreditCard, disabled: true },
+    { name: 'Settings', path: '#', icon: Settings, disabled: true },
   ];
 
-  const breadcrumbName = mainNavItems.find(item => location.pathname.startsWith(item.path))?.name || 'Overview';
+  const breadcrumbName = [...mainNavItems, ...workspaceNavItems].find(item => location.pathname.startsWith(item.path))?.name || 'Overview';
 
   return (
     <div className="min-h-screen bg-[#000000] text-white flex">
@@ -55,19 +55,41 @@ export default function DashboardLayout() {
             })}
           </nav>
 
-          <div className="px-4 mt-8 mb-2 text-[10px] font-semibold text-[#555] uppercase tracking-wider">Workspace (Pro)</div>
+          <div className="px-4 mt-8 mb-2 text-[10px] font-semibold text-[#555] uppercase tracking-wider">Workspace</div>
           <nav className="px-2 space-y-1">
-            {secondaryNavItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.path}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#111] hover:text-[#888] transition-all cursor-not-allowed"
-                title="Available on Enterprise Plan"
-              >
-                <item.icon className="w-4 h-4" />
-                <span>{item.name}</span>
-              </a>
-            ))}
+            {workspaceNavItems.map((item) => {
+              const isActive = location.pathname.startsWith(item.path) && !item.disabled;
+              const Icon = item.icon;
+              
+              if (item.disabled) {
+                return (
+                  <a
+                    key={item.name}
+                    href={item.path}
+                    className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#111] hover:text-[#888] transition-all cursor-not-allowed"
+                    title="Available on Enterprise Plan"
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name} (Pro)</span>
+                  </a>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
+                    isActive 
+                      ? 'bg-white text-black font-medium' 
+                      : 'text-[#888] hover:bg-[#111] hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
 

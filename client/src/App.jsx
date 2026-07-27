@@ -6,6 +6,7 @@ import Analyze from './pages/Analyze';
 import Results from './pages/Results';
 import History from './pages/History';
 import ModelInsights from './pages/ModelInsights';
+import ApiKeys from './pages/ApiKeys';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/results/:id" element={<Results />} />
           <Route path="/history" element={<History />} />
           <Route path="/model" element={<ModelInsights />} />
+          <Route path="/api-keys" element={<ApiKeys />} />
         </Route>
       </Routes>
     </BrowserRouter>
