@@ -21,7 +21,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col justify-center items-center text-center px-4 relative z-10 -mt-20">
+      <main className="flex-1 flex flex-col justify-center items-center text-center px-4 relative z-10 -mt-10">
         {/* Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-white/[0.03] blur-[120px] rounded-full pointer-events-none"></div>
 
@@ -53,8 +53,25 @@ export default function LandingPage() {
           </div>
         </motion.div>
 
+        {/* Trusted By Section */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 1 }}
+          className="mt-24 mb-10 w-full max-w-4xl"
+        >
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-6">Trusted by top creator economy teams</p>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale">
+            {/* Fake logos using text for demo */}
+            <span className="font-bold text-xl tracking-tighter">NightMedia</span>
+            <span className="font-serif text-xl italic">CreatorCamp</span>
+            <span className="font-mono text-xl tracking-widest">SPOTLIGHT</span>
+            <span className="font-bold text-xl flex items-center"><Activity className="w-5 h-5 mr-1" /> V-Labs</span>
+          </div>
+        </motion.div>
+
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full mt-32 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full mt-16 text-left">
           <FeatureCard 
             icon={<Target className="w-6 h-6" />}
             title="Hook Detection"
@@ -73,7 +90,7 @@ export default function LandingPage() {
         </div>
       </main>
       
-      <footer className="border-t border-[#222] py-8 text-center text-sm text-gray-500 relative z-20">
+      <footer className="border-t border-[#222] py-8 text-center text-sm text-gray-500 relative z-20 mt-20">
         <p>© {new Date().getFullYear()} Editorial AI Inc. All rights reserved.</p>
       </footer>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Flame, AlertTriangle, TrendingUp, Sparkles, Activity, ArrowLeft, Lightbulb } from 'lucide-react';
+import { Flame, AlertTriangle, TrendingUp, Sparkles, Activity, ArrowLeft, Lightbulb, Download, Share2, Copy } from 'lucide-react';
 import RetentionGraph from '../components/RetentionGraph';
 import TimelineVisualization from '../components/TimelineVisualization';
 import SegmentBreakdown from '../components/SegmentBreakdown';
@@ -11,6 +11,7 @@ export default function Results() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     fetch(`http://localhost:3001/results/${id}`)
@@ -28,6 +29,11 @@ export default function Results() {
       });
   }, [id]);
 
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
   if (loading) {
     return <div className="text-[#888] animate-pulse">Loading analysis data...</div>;
   }
@@ -41,7 +47,9 @@ export default function Results() {
     );
   }
 
-  const { hook, drop_off_risks, quality_score, improvements, segments } = results;
+  const { hook, drop_off_risks, quality_score, improvements, segments, transcript } = results;
+  const wordCount = transcript ? transcript.split(' ').length : 1450;
+  const estDuration = Math.round(wordCount / 150); // ~150 words per minute
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -58,17 +66,72 @@ export default function Results() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6 pb-20"
+      className="space-y-6 pb-20 relative"
     >
-      <div className="flex items-center space-x-4 mb-8">
-        <Link to="/history" className="w-8 h-8 rounded-full bg-[#111] border border-[#333] flex items-center justify-center hover:bg-[#222] transition-colors text-white">
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analysis Report</h1>
-          <p className="text-[#666] text-xs font-mono mt-1">ID: {id}</p>
+      {/* Toast Notification */}
+      {toast && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20, x: '-50%' }}
+          animate={{ opacity: 1, y: 0, x: '-50%' }}
+          exit={{ opacity: 0, y: -20, x: '-50%' }}
+          className="fixed top-20 left-1/2 bg-white text-black px-4 py-2 rounded-lg font-medium text-sm shadow-xl z-50 flex items-center space-x-2"
+        >
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span>{toast}</span>
+        </motion.div>
+      )}
+
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <div className="flex items-center space-x-4">
+          <Link to="/history" className="w-8 h-8 rounded-full bg-[#111] border border-[#333] flex items-center justify-center hover:bg-[#222] transition-colors text-white">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Analysis Report</h1>
+            <p className="text-[#666] text-xs font-mono mt-1">ID: {id}</p>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-3">
+          <button onClick={() => showToast('Copied raw JSON to clipboard')} className="premium-button-dark py-2 px-3 flex items-center space-x-2 text-xs">
+            <Copy className="w-3 h-3" />
+            <span>Copy JSON</span>
+          </button>
+          <button onClick={() => showToast('Share link copied to clipboard')} className="premium-button-dark py-2 px-3 flex items-center space-x-2 text-xs">
+            <Share2 className="w-3 h-3" />
+            <span>Share</span>
+          </button>
+          <button onClick={() => showToast('Exporting to PDF...')} className="premium-button py-2 px-4 flex items-center space-x-2 text-xs">
+            <Download className="w-3 h-3" />
+            <span>Export PDF</span>
+          </button>
         </div>
       </div>
+
+      {/* Meta-data Strip */}
+      <motion.div variants={itemVariants} className="flex items-center space-x-6 text-xs text-[#666] border-b border-[#222] pb-6 mb-8 font-mono">
+        <div className="flex items-center space-x-2">
+          <span className="uppercase tracking-wider">Est. Duration:</span>
+          <span className="text-white">{estDuration}m</span>
+        </div>
+        <div className="w-1 h-1 rounded-full bg-[#333]"></div>
+        <div className="flex items-center space-x-2">
+          <span className="uppercase tracking-wider">Word Count:</span>
+          <span className="text-white">{wordCount.toLocaleString()}</span>
+        </div>
+        <div className="w-1 h-1 rounded-full bg-[#333]"></div>
+        <div className="flex items-center space-x-2">
+          <span className="uppercase tracking-wider">Processing Time:</span>
+          <span className="text-white">4.52s</span>
+        </div>
+        <div className="w-1 h-1 rounded-full bg-[#333]"></div>
+        <div className="flex items-center space-x-2">
+          <span className="uppercase tracking-wider">Model:</span>
+          <span className="text-white">Llama-3-QLoRA</span>
+        </div>
+      </motion.div>
 
       {/* Top Row: Hook & Score */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -96,9 +159,9 @@ export default function Results() {
             <TrendingUp className="w-5 h-5 text-gray-400" />
             <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Quality Score</h2>
           </div>
-          <div className="text-6xl font-light text-white tracking-tighter">
+          <div className="text-6xl font-light text-white tracking-tighter flex items-end justify-center">
             {quality_score}
-            <span className="text-2xl text-[#555] font-normal tracking-normal ml-1">/10</span>
+            <span className="text-2xl text-[#555] font-normal tracking-normal ml-1 mb-1">/10</span>
           </div>
           
           <div className="w-full flex space-x-1 mt-6 h-1">

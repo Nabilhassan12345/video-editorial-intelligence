@@ -115,7 +115,7 @@ function simulateMockResponse(transcript) {
           { start_time: "08:01", end_time: "10:00", text_summary: "Secondary metrics and conclusion.", risk_score: 7, engagement_score: 4 }
         ]
       });
-    }, 1500);
+    }, 5000);
   });
 }
 
