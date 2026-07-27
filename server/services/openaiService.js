@@ -6,8 +6,6 @@ const PROMPT = `You are a world-class video editor, retention expert, and conten
 
 You analyze video transcripts like a professional YouTube editor optimizing for retention and engagement.
 
-Think deeply before answering.
-
 Analyze the transcript and identify:
 
 1. Hook:
@@ -18,6 +16,7 @@ The most attention-grabbing moment (timestamp + exact text)
 Include:
 - timestamp
 - specific reason (pacing, boredom, confusion, no payoff, etc.)
+- explanation (deep ML-style rationale of WHY this causes drop-off)
 
 3. Quality Score:
 Rate from 1–10 based on:
@@ -29,30 +28,33 @@ Rate from 1–10 based on:
 4. Improvements:
 Give 3–5 highly actionable editing suggestions
 
+5. Segments:
+Break the transcript into 3-5 logical blocks. For each, provide:
+- start_time
+- end_time
+- text_summary
+- risk_score (1-10)
+- engagement_score (1-10)
+
 STRICT RULES:
-- Be specific, not generic
-- Reference actual transcript content
-- Think like a professional editor
-- Keep answers concise
 - Return ONLY valid JSON
 
 FORMAT:
 {
   "hook": "...",
   "drop_off_risks": [
-    { "timestamp": "...", "reason": "..." }
+    { "timestamp": "...", "reason": "...", "explanation": "..." }
   ],
   "quality_score": number,
-  "improvements": ["...", "..."]
+  "improvements": ["...", "..."],
+  "segments": [
+    { "start_time": "...", "end_time": "...", "text_summary": "...", "risk_score": number, "engagement_score": number }
+  ]
 }
 
 Transcript:
 {{transcript}}`;
 
-/**
- * Calls OpenAI to analyze the transcript. If no API key is present,
- * returns a simulated mock response for demonstration purposes.
- */
 async function analyzeTranscript(rawTranscript, preprocessedData) {
   if (!openai) {
     console.log('[OpenAI Service] No API key found. Using Mock Mode.');
@@ -78,27 +80,42 @@ async function analyzeTranscript(rawTranscript, preprocessedData) {
   }
 }
 
-/**
- * Generates a realistic mock response for demo purposes.
- */
 function simulateMockResponse(transcript) {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
         hook: "[00:12] Today I'm going to show you how I made $10,000 in a single week using a strategy almost no one is talking about.",
         drop_off_risks: [
-          { timestamp: "[01:45]", reason: "Long, unbroken monologue explaining technical jargon without visual payoff." },
-          { timestamp: "[04:20]", reason: "Pacing slows down significantly during the transition; risk of boredom." },
-          { timestamp: "[08:10]", reason: "Confusing explanation of the secondary metric; viewers might feel lost and click off." }
+          { 
+            timestamp: "[01:45]", 
+            reason: "Long, unbroken monologue", 
+            explanation: "Lexical density spike coupled with an absence of visual variation creates a high cognitive load, causing casual viewers to churn." 
+          },
+          { 
+            timestamp: "[04:20]", 
+            reason: "Pacing slows down", 
+            explanation: "The transition introduces a 4-second silence gap and filler words, breaking the established tempo." 
+          },
+          { 
+            timestamp: "[08:10]", 
+            reason: "Confusing metric explanation", 
+            explanation: "Introduction of jargon without a grounding metaphor. The semantic complexity exceeds the typical retention threshold for this niche." 
+          }
         ],
         quality_score: 7.5,
         improvements: [
           "Add aggressive zoom cuts during the intro hook to match the high energy.",
           "Insert B-roll or on-screen graphics at [01:45] to visually support the technical explanation.",
           "Cut the transition at [04:20] entirely and use a J-cut to immediately introduce the next topic."
+        ],
+        segments: [
+          { start_time: "00:00", end_time: "01:40", text_summary: "High-energy introduction and hook delivery.", risk_score: 2, engagement_score: 9 },
+          { start_time: "01:41", end_time: "04:19", text_summary: "Deep technical explanation of the strategy.", risk_score: 8, engagement_score: 5 },
+          { start_time: "04:20", end_time: "08:00", text_summary: "Case studies and examples.", risk_score: 4, engagement_score: 7 },
+          { start_time: "08:01", end_time: "10:00", text_summary: "Secondary metrics and conclusion.", risk_score: 7, engagement_score: 4 }
         ]
       });
-    }, 1500); // Simulate network delay
+    }, 1500);
   });
 }
 

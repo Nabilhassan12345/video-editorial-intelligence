@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const analysisPipeline = require('../services/analysisPipeline');
+const { saveAnalysis } = require('../models/db');
 
 router.post('/', async (req, res) => {
   try {
@@ -15,7 +17,11 @@ router.post('/', async (req, res) => {
     // Run the pipeline
     const result = await analysisPipeline.run(transcript);
 
-    res.json(result);
+    // Save to in-memory DB with a unique ID
+    const id = crypto.randomUUID();
+    const savedRecord = saveAnalysis(id, { transcript, ...result });
+
+    res.json(savedRecord);
   } catch (error) {
     console.error('[Pipeline Error]', error);
     res.status(500).json({ error: 'An error occurred during transcript analysis.' });

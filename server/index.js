@@ -1,7 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+
 const analyzeRoute = require('./routes/analyze');
+const historyRoute = require('./routes/history');
+const resultsRoute = require('./routes/results');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,6 +15,8 @@ app.use(express.json());
 
 // Routes
 app.use('/analyze', analyzeRoute);
+app.use('/history', historyRoute);
+app.use('/results', resultsRoute);
 
 // Basic health check
 app.get('/health', (req, res) => {
