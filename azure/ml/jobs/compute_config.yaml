@@ -1,0 +1,23 @@
+# Azure Machine Learning Compute Target Templates
+# Cost-conscious configuration: min_instances=0 ensures automatic scale-to-zero when idle
+
+# 1. Cost-Effective CPU Cluster for Preprocessing and Evaluation
+cpu_cluster:
+  name: cpu-cluster-standard
+  type: amlcompute
+  size: Standard_DS3_v2       # 4 vCPUs, 14 GB RAM (~$0.19/hr)
+  min_instances: 0            # Scale-to-zero when idle
+  max_instances: 2
+  idle_time_before_scale_down: 120
+  tier: LowPriority           # Spot / Low Priority tier for cost reduction (up to 80% discount)
+
+# 2. GPU Cluster for PEFT LoRA Fine-Tuning
+gpu_cluster:
+  name: gpu-cluster-v100
+  type: amlcompute
+  size: Standard_NC6s_v3      # 1x NVIDIA Tesla V100 16GB, 6 vCPUs, 112 GB RAM
+  min_instances: 0            # Automatic scale-down
+  max_instances: 1
+  idle_time_before_scale_down: 180
+  tier: Dedicated             # Dedicated for uninterrupted training runs
+

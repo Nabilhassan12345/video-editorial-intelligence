@@ -1,0 +1,7 @@
+{
+  "subscription_id": "00000000-0000-0000-0000-000000000000",
+  "resource_group": "rg-video-intelligence",
+  "workspace_name": "aml-video-editorial-prod",
+  "location": "eastus"
+}
+

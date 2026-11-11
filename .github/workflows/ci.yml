@@ -1,0 +1,80 @@
+name: Continuous Integration & Verification
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  python-test:
+    name: PyTorch, PEFT & Pipeline Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install System Dependencies (FFmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Fine-Tuning Pipeline Dry Run
+        run: |
+          python -m src.train --dry-run
+
+      - name: Run Pytest Test Suite
+        run: |
+          python -m pytest tests/ -v
+
+  frontend-build:
+    name: React + Vite Frontend Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Client Dependencies & Build
+        run: |
+          cd client
+          npm ci
+          npm run build
+
+
+  server-test:
+    name: Node.js Server Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Server Dependencies & Test
+        run: |
+          cd server
+          npm ci
+          npm test

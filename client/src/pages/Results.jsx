@@ -47,7 +47,8 @@ export default function Results() {
     );
   }
 
-  const { hook, drop_off_risks, quality_score, improvements, segments, transcript } = results;
+  const { hook, drop_off_risks, quality_score, improvements, segments, transcript, source, model_status, prediction_note } = results;
+  const showModelWarning = source === 'mock' || (source === 'python_model' && model_status !== 'fine_tuned');
   const wordCount = transcript ? transcript.split(' ').length : 1450;
   const estDuration = Math.round(wordCount / 150); // ~150 words per minute
 
@@ -68,6 +69,15 @@ export default function Results() {
       animate="visible"
       className="space-y-6 pb-20 relative"
     >
+      {showModelWarning && (
+        <div className="rounded-md border border-yellow-900/60 bg-yellow-950/30 px-4 py-3 text-sm text-yellow-300">
+          {prediction_note || 'These results are illustrative and not produced by a trained model.'}
+        </div>
+      )}
+      {source === 'python_model' && !showModelWarning && prediction_note && (
+        <div className="rounded-md border border-[#333] bg-[#111] px-4 py-3 text-xs text-gray-400">{prediction_note}</div>
+      )}
+
       {/* Toast Notification */}
       {toast && (
         <motion.div 
