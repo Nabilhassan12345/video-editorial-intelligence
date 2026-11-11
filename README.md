@@ -108,7 +108,7 @@ flowchart LR
 | Dropout | 0.05 |
 | Target modules | `q_lin`, `v_lin` (DistilBERT-specific) |
 | Trainable params | 446,211 / 66,809,091 (0.67%) |
-| Epochs | 5 (`--epochs 5`) |
+| Epochs | 4 (`--epochs 4`, batch 32, CPU, 6,790 s) |
 | Learning rate | 2e-5 |
 | Batch size | 8 |
 | Best val_loss | 1.4123 |
@@ -125,7 +125,7 @@ flowchart TD
     end
 
     subgraph "Azure Machine Learning Workspace"
-        B --> D["Compute Cluster\ngpu-cluster-v100 / LowPriority"]
+        B --> D["Compute Cluster\ngpu-cluster-t4 / LowPriority"]
         B --> E["AML Environment\nvideo-editorial-env\n(Conda + Docker + FFmpeg + CUDA)"]
         D --> F["Command Job\nPEFT LoRA Fine-Tuning"]
         E --> F
@@ -148,44 +148,20 @@ flowchart TD
 
 ## Evaluation Results
 
-> [!IMPORTANT]
-> These numbers come from the bundled **synthetic** dataset (`generate_curated_editorial_dataset`): 70 samples generated from **10 hand-written sentence templates** with jittered acoustic features and labels. They are a pipeline sanity check, **not** evidence of real-world editorial or retention performance.
+Trained on **18,150 real samples from 4 public research sources**: 4,000 TikTok Creative Center ads and 2,150 YouTube/Bilibili videos with *measured* per-second audience-retention curves (150 of them paired with real YouTube captions via yt-dlp), plus 12,000 TikTok hooks with engagement stats. The split is group-aware, so no creator or video crosses train/test. Test set: 2,787 samples. Full tables, commands and caveats: [docs/EVALUATION.md](docs/EVALUATION.md). Data sources and licenses: [docs/DATASETS.md](docs/DATASETS.md).
 
-### Split (group-aware, stratified by label type)
+Per-source metrics (the honest view; pooled numbers are inflated by between-source differences):
 
-Samples generated from the same template are near-duplicates, so whole templates are assigned to one split (`src/train.py::split_dataset`, checked by `assert_no_leakage`). An earlier version split by sample, which put copies of the same sentence in train and test and produced ROC-AUC = 1.0 — those numbers were leakage and have been removed.
+| Head | Metric | TTCC (retention) | vRetention (retention) | TikTok hooks (engagement) |
+|---|---|---:|---:|---:|
+| Hook | ROC-AUC | 0.66 | n/a (98% positive) | 0.53 |
+| Hook | F1 @0.5 | 0.38 | 0.98 | 0.84 |
+| Drop-off | ROC-AUC | 0.64 | 0.62 | n/a (no curves) |
+| Drop-off | PR-AUC | 0.81 | 0.87 | n/a |
+| Quality | RMSE (1–10) | 0.99 | 1.59 | 1.53 |
+| Quality | Pearson r | 0.08 | 0.16 | 0.15 |
 
-| Split | Samples | Templates |
-|---|---|---|
-| Train | 42 | 6 |
-| Validation | 7 | 1 |
-| Test | 21 | 3 (one hook, one filler/drop-off, one neutral) |
-
-### Metrics on the held-out templates
-
-Command: `python -m src.train --epochs 5` then `python -m src.evaluate --checkpoint-dir checkpoints/editorial_model` (CPU, seed 42, best val loss 1.1412).
-
-| Task / Metric | Baseline (random heads) | Fine-tuned (LoRA) |
-|:---|:---:|:---:|
-| Hook F1 (threshold 0.5) | 0.0000 | 0.0000 |
-| Hook ROC-AUC | 1.0000 | 1.0000 |
-| Drop-off ROC-AUC | 0.0000 | 1.0000 |
-| Drop-off PR-AUC | 0.2124 | 1.0000 |
-| Drop-off Brier (lower is better) | 0.2666 | 0.1432 |
-| Quality RMSE (lower is better) | 2.4428 | 1.7399 |
-| Quality Pearson r | -0.1506 | 0.9268 |
-| CPU latency / segment | – | 17.34 ms (57.7 segments/s) |
-
-**How to read this honestly**
-
-- The test set contains only **3 distinct sentences** (7 jittered copies each). Ranking metrics over 3 sentences are close to meaningless: the random-init baseline also gets Hook ROC-AUC 1.0, and Drop-off ROC-AUC flips between 0 and 1 depending on how one sentence is ranked.
-- **Hook F1 is 0** for both models: no hook probability crosses 0.5, so the hook head is uncalibrated. Thresholds were not tuned.
-- Brier, RMSE and Pearson r do improve after fine-tuning, which shows the training loop learns *something* transferable across templates, but with 6 training templates this cannot be generalised.
-- Largest residual: the fine-tuned model predicts quality ≈5.7 for the filler-heavy "And yeah, like I said before…" template whose label is ≈2.9.
-
-The JSON / Markdown outputs are written to `outputs/evaluation/` (git-ignored; re-run the commands above to reproduce). Exact numbers may vary slightly across PyTorch versions/hardware.
-
-Full methodology: [docs/EVALUATION.md](docs/EVALUATION.md).
+What this does and doesn't show: the drop-off and TTCC hook heads learn a real but modest signal from text + audio features. Quality *ranking* within a source is still weak. Hook virality from caption text alone is near chance. These are baseline numbers to beat, not production accuracy. The synthetic 70-sample template benchmark is kept in EVALUATION.md as a pipeline sanity check only.
 
 ### Model Details
 
@@ -193,10 +169,10 @@ Full methodology: [docs/EVALUATION.md](docs/EVALUATION.md).
 |---|---|
 | Backbone | `distilbert-base-uncased` |
 | Fine-tuning method | PEFT LoRA |
-| Epochs | 5 (`--epochs 5`) |
-| Training dataset | Real labeled: TTCC ads w/ measured retention curves (see docs/DATASETS.md); synthetic fallback: 42 samples |
+| Epochs | 4 (`--epochs 4`, batch 32, CPU, 6,790 s) |
+| Training dataset | 12,497 real training samples (TTCC + vRetention + YouTube captions + TikTok hooks; see docs/DATASETS.md); synthetic 70-sample fallback |
 | Trainable parameters | 446,211 / 66,809,091 (0.67%) |
-| Best validation loss | 1.1412 |
+| Best validation loss | 0.9127 |
 
 ---
 
@@ -335,19 +311,42 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 > [!IMPORTANT]
 > All commands below run in **dry-run mode by default** and preview the job specification locally. Live submission to Azure requires valid Azure credentials (`az login` or `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_WORKSPACE_NAME` environment variables).
 
-### Setup Azure Credentials
+### Run it on your own Azure subscription (≈ $1 on a T4)
+
+Everything is wired end-to-end; bring any subscription (new Azure accounts typically include free credit):
 
 ```bash
-# Option A: Azure CLI
 az login
+az group create -n rg-video-editorial -l eastus
 export AZURE_SUBSCRIPTION_ID="<your-subscription-id>"
-export AZURE_RESOURCE_GROUP="<your-resource-group>"
-export AZURE_WORKSPACE_NAME="<your-aml-workspace>"
+export AZURE_RESOURCE_GROUP="rg-video-editorial"
+export AZURE_WORKSPACE_NAME="aml-video-editorial"
 
-# Option B: config file
-cp azure/ml/config.json.example azure/ml/config.json
-# Edit azure/ml/config.json with your workspace details
+# 1. Workspace + scale-to-zero T4 GPU cluster + CPU fallback cluster + environment
+.venv/bin/python -m azure.ml.setup_workspace --create
+
+# 2. Build the real corpus (docs/DATASETS.md), then train on GPU and stream logs
+.venv/bin/python -m azure.ml.submit_training --dataset-path data/real/combined_v2.jsonl \
+    --epochs 5 --batch-size 64 --submit --stream
+#    No GPU quota yet? add: --compute cpu-cluster-standard
+
+# 3. Register the model, then (optionally) deploy and DELETE the endpoint after the demo
+.venv/bin/python -m azure.ml.register_model --checkpoint-dir checkpoints/editorial_model_v2 --register
+.venv/bin/python -m azure.ml.deploy_model --deploy
+.venv/bin/python -m azure.ml.deploy_model --delete   # endpoints bill hourly even when idle
 ```
+
+| Resource | Size | Approx. list price* | Idle cost |
+|---|---|---|---|
+| `gpu-cluster-t4` | Standard_NC4as_T4_v3 (1× T4) | ~$0.53/h → ~$0.25 for the 18k run | $0 (scales to 0) |
+| `cpu-cluster-standard` | Standard_DS3_v2, low-priority | ~$0.05–0.2/h | $0 (scales to 0) |
+| Online endpoint | Standard_DS3_v2 | ~$0.3/h | **bills while it exists** — use `--delete` |
+
+\*Estimates; check the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) for your region. New/free subscriptions often have 0 GPU quota: request "Standard NCASv3_T4 Family" (4 vCPUs) under Quotas → Machine Learning.
+
+The live runs above have not been executed from this repo yet; every command is verified in dry-run mode (`tests/test_azure_ml_configs.py`).
+
+Manual credential setup (alternative to env vars): `cp azure/ml/config.json.example azure/ml/config.json`.
 
 ### Submit Training Job
 
@@ -356,7 +355,7 @@ cp azure/ml/config.json.example azure/ml/config.json
 .venv/bin/python -m azure.ml.submit_training
 
 # Submit live to Azure ML compute cluster (requires credentials)
-.venv/bin/python -m azure.ml.submit_training --submit --compute gpu-cluster-v100 --epochs 3
+.venv/bin/python -m azure.ml.submit_training --submit --compute gpu-cluster-t4 --epochs 3
 ```
 
 ### Submit Evaluation Job

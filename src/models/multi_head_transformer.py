@@ -126,6 +126,7 @@ class VideoEditorialTransformer(nn.Module):
         drop_off_labels: Optional[torch.Tensor] = None,
         quality_labels: Optional[torch.Tensor] = None,
         loss_weights: Optional[Dict[str, float]] = None,
+        drop_off_mask: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass through encoder and multi-head prediction layers.
@@ -138,6 +139,7 @@ class VideoEditorialTransformer(nn.Module):
             drop_off_labels: (batch_size,) target retention churn probabilities [0, 1]
             quality_labels: (batch_size,) target quality ratings [1.0, 10.0]
             loss_weights: Optional dictionary specifying loss weighting
+            drop_off_mask: (batch_size,) 1 where the drop-off label is measured, 0 for placeholders
             
         Returns:
             Dictionary with 'hook_prob', 'drop_off_risk', 'quality_score', and optionally 'loss'.
@@ -183,7 +185,12 @@ class VideoEditorialTransformer(nn.Module):
                 output["loss_hook"] = bce_hook
 
             if drop_off_labels is not None:
-                bce_drop = nn.BCEWithLogitsLoss()(drop_off_logits, drop_off_labels.float())
+                if drop_off_mask is None:
+                    bce_drop = nn.BCEWithLogitsLoss()(drop_off_logits, drop_off_labels.float())
+                else:
+                    per_sample = nn.BCEWithLogitsLoss(reduction="none")(drop_off_logits, drop_off_labels.float())
+                    mask = drop_off_mask.float()
+                    bce_drop = (per_sample * mask).sum() / mask.sum().clamp(min=1.0)
                 total_loss = total_loss + weights.get("drop_off", 1.5) * bce_drop
                 output["loss_drop_off"] = bce_drop
 

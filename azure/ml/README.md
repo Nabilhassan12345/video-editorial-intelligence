@@ -16,7 +16,7 @@ flowchart TD
     end
 
     subgraph Azure Machine Learning Workspace
-        B --> D[Azure ML Compute Cluster<br>gpu-cluster-v100 / LowPriority]
+        B --> D[Azure ML Compute Cluster<br>gpu-cluster-t4 / LowPriority]
         B --> E[Azure ML Environment<br>video-editorial-env]
         
         D --> F[Command Job: PEFT LoRA Fine-Tuning]
@@ -94,7 +94,7 @@ python -m azure.ml.submit_training
 
 Submit live to your Azure ML compute cluster:
 ```bash
-python -m azure.ml.submit_training --submit --compute gpu-cluster-v100 --epochs 3
+python -m azure.ml.submit_training --submit --compute gpu-cluster-t4 --epochs 3
 ```
 
 ### 2. Submit Model Evaluation Job

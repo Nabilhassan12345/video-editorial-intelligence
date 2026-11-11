@@ -113,12 +113,26 @@ def configure_deployment(
     logger.info(f"Deployment complete! Traffic routed 100% to '{deployment_name}'.")
 
 
+def delete_endpoint(endpoint_name: str = "video-editorial-endpoint"):
+    """Tear down a managed online endpoint; endpoints bill per hour even when idle."""
+    ml_client = get_ml_client()
+    logger.info(f"Deleting endpoint '{endpoint_name}'...")
+    ml_client.online_endpoints.begin_delete(name=endpoint_name).result()
+    logger.info("Endpoint deleted; billing for its instances has stopped.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Deploy Video Editorial Model to Azure ML Online Endpoint")
     parser.add_argument("--endpoint", type=str, default="video-editorial-endpoint", help="Endpoint name")
     parser.add_argument("--instance-type", type=str, default="Standard_DS3_v2", help="VM instance type")
     parser.add_argument("--deploy", action="store_true", help="Perform live cloud deployment")
+    parser.add_argument("--delete", action="store_true",
+                        help="Delete the endpoint (stops hourly billing). Run this right after a demo.")
     args = parser.parse_args()
+
+    if args.delete:
+        delete_endpoint(args.endpoint)
+        return
 
     configure_deployment(
         endpoint_name=args.endpoint,

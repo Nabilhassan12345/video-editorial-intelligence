@@ -8,7 +8,53 @@
 3. Evaluate a baseline (`distilbert-base-uncased` with randomly initialised heads, no adapter) and the fine-tuned checkpoint on the test split.
 4. Metrics (`scikit-learn` / `scipy`): Hook F1 + ROC-AUC, Drop-off ROC-AUC, PR-AUC and Brier score, Quality RMSE / MAE / R² / Pearson r, CPU latency and throughput. Ranking metrics are reported as `null` / "undefined" when the test split has a single class, instead of a fake 0.5.
 
-## Results (real retention-labeled data — TikTok Creative Center)
+## Results v2 (18,150 real samples, 4 sources — current)
+
+Corpus `data/real/combined_v2.jsonl` (git-ignored; rebuild with the commands in [DATASETS.md](DATASETS.md)):
+
+| Source | Samples | Label type |
+|---|---:|---|
+| TikTok Creative Center (`ttcc`) | 4,000 | measured 1 Hz retention curve |
+| vRetention YouTube/Bilibili (`vretention`) | 2,000 | measured retention curve |
+| vRetention + real YouTube captions (`youtube_vretention`) | 150 | measured retention curve + yt-dlp transcript |
+| TikTok hooks (`tiktok_hooks`) | 12,000 | engagement-derived (hook = views ≥ 2× account median); no retention curve |
+
+Group-aware split (creator / video / identical-text groups never cross splits): train 12,497 (4,342 groups), val 2,866 (930), test 2,787 (978).
+Training: `python -m src.train --dataset-path data/real/combined_v2.jsonl --epochs 4 --batch-size 32 --output-dir checkpoints/editorial_model_v2` — CPU, 6,790 s, best val loss 0.9127 (v1: 1.5408).
+Evaluation: `python -m src.evaluate --checkpoint-dir checkpoints/editorial_model_v2 --dataset-path data/real/combined_v2.jsonl --output-dir reports/eval_v2`.
+
+### Pooled test split (2,787 samples)
+
+| Task / Metric | Baseline (random heads) | Fine-tuned (LoRA) |
+|:---|:---:|:---:|
+| Hook F1 (threshold 0.5) | 0.6180 | **0.8246** |
+| Hook ROC-AUC | 0.4793 | **0.7062** |
+| Drop-off ROC-AUC | 0.3113 | 0.9570 ⚠️ |
+| Drop-off PR-AUC | 0.1752 | 0.8265 ⚠️ |
+| Quality RMSE | 2.4227 | **1.4426** |
+| Quality Pearson r | -0.1715 | 0.7156 ⚠️ |
+| CPU latency / segment | – | 64.7 ms (15.5 segments/s) |
+
+⚠️ **Do not quote the pooled drop-off / quality-r numbers as headline results.** Pooling sources rewards the model for telling sources apart: every `tiktok_hooks` sample carries a placeholder `drop_off_risk = 0`, and quality levels differ systematically by source. The per-source table is the honest view.
+
+### Per-source breakdown (fine-tuned, same test split)
+
+| Source | n | Hook pos. rate | Hook F1 | Hook ROC-AUC | Drop-off ROC-AUC | Drop-off PR-AUC | Quality RMSE | Quality r |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tiktok_hooks | 1,907 | 0.721 | 0.8359 | 0.5337 | n/a | n/a | 1.5269 | 0.1525 |
+| ttcc | 567 | 0.330 | 0.3791 | **0.6627** | 0.6371 | 0.8148 | 0.9916 | 0.0789 |
+| vretention | 293 | 0.976 | 0.9844 | 0.4510 | 0.6173 | 0.8720 | 1.5922 | 0.1575 |
+| youtube_vretention | 20 | 1.000 | 1.0000 | n/a | 0.8125 | 0.9542 | 1.6312 | 0.2378 |
+| **All retention-labeled** | 880 | 0.560 | 0.7844 | 0.8560 | 0.6278 | 0.8372 | 1.2402 | 0.9077 |
+
+**How to read this honestly**
+
+- **Hook on TTCC improved slightly and is now calibrated:** ROC-AUC 0.66 vs 0.64 in v1, and F1 went from 0.00 to 0.38 (probabilities now cross 0.5). The 12k TikTok-hooks rows helped calibration more than ranking: within `tiktok_hooks` the hook ROC-AUC is only 0.53. Predicting which caption becomes an engagement outlier from text alone is close to chance.
+- **Within-source drop-off is about 0.62–0.64 ROC-AUC on TTCC/vRetention, below v1's 0.73 on TTCC alone.** Likely cause: v2 trained on the placeholder `drop_off_risk = 0` labels from `tiktok_hooks`. The training code now masks placeholder labels out of the drop-off loss (`drop_off_mask` in `src/data/dataset.py`); a retrain with the mask is the next run.
+- **Quality ranking within a source is weak (r 0.08–0.16).** The pooled r = 0.72/0.91 mostly comes from between-source mean differences. Per-segment labels (instead of whole-video AUC) are the most likely fix.
+- vRetention and the YouTube subset are ~98–100% hook-positive under the ≥20%-at-3s rule, so hook ROC-AUC there is undefined or noisy.
+
+## Results v1 (1,500 TTCC ads — superseded)
 
 Real data collected with `python -m src.data.real.collect --source ttcc --limit 1500 --out data/real/ttcc_train.jsonl` (1,500 ads, 1,207 distinct groups after text-merging; 500 hook-positive, 1,154 drop-off-positive). Labels are **measured per-second audience retention**: hook = ≥20% retained at 3s, drop_off_risk = largest single-second relative loss, quality = retention-curve AUC scaled 1–10. See [DATASETS.md](DATASETS.md).
 

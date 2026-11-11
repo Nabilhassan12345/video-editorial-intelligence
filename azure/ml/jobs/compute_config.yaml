@@ -13,9 +13,9 @@ cpu_cluster:
 
 # 2. GPU Cluster for PEFT LoRA Fine-Tuning
 gpu_cluster:
-  name: gpu-cluster-v100
+  name: gpu-cluster-t4
   type: amlcompute
-  size: Standard_NC6s_v3      # 1x NVIDIA Tesla V100 16GB, 6 vCPUs, 112 GB RAM
+  size: Standard_NC4as_T4_v3  # 1x NVIDIA T4 16GB, 4 vCPUs, 28 GB RAM (~$0.53/h list; V100 = Standard_NC6s_v3)
   min_instances: 0            # Automatic scale-down
   max_instances: 1
   idle_time_before_scale_down: 180

@@ -34,7 +34,7 @@ def test_azure_ml_config_templates():
 def test_azure_ml_training_job_dry_run():
     job = submit_training_job(
         base_model="distilbert-base-uncased",
-        compute_cluster="gpu-cluster-v100",
+        compute_cluster="gpu-cluster-t4",
         epochs=1,
         dry_run=True,
     )
@@ -69,3 +69,20 @@ def test_azure_ml_deployment_dry_run():
     assert endpoint.name == "test-endpoint"
     assert deployment.instance_count == 1
 
+
+
+def test_azure_ml_workspace_bootstrap_dry_run():
+    from azure.ml.setup_workspace import setup_workspace
+    specs = setup_workspace("", "", "aml-test", dry_run=True)
+    names = {c.name: c for c in specs["computes"]}
+    assert set(names) == {"gpu-cluster-t4", "cpu-cluster-standard"}
+    assert all(c.min_instances == 0 for c in names.values())
+    assert names["gpu-cluster-t4"].size == "Standard_NC4as_T4_v3"
+    assert specs["environment"].name == "video-editorial-env"
+
+
+def test_azure_ml_training_job_picks_device_from_compute():
+    gpu = submit_training_job(compute_cluster="gpu-cluster-t4", dataset_path="data/x.jsonl", dry_run=True)
+    cpu = submit_training_job(compute_cluster="cpu-cluster-standard", dry_run=True)
+    assert "--device cuda" in gpu.command and "--dataset-path" in gpu.command
+    assert "--device cpu" in cpu.command and "--dataset-path" not in cpu.command

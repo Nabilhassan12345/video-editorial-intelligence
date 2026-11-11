@@ -95,3 +95,27 @@ def test_vtt_to_text_dedupes_and_strips_tags(tmp_path: Path):
         encoding="utf-8",
     )
     assert _vtt_to_text(str(vtt)) == "hello world next line"
+
+
+def test_drop_off_mask_excludes_placeholder_labels_from_loss():
+    import torch
+    from src.data.dataset import VideoEditorialDataset
+    from src.models.config import EditorialModelConfig
+    from src.models.multi_head_transformer import VideoEditorialTransformer
+
+    items = [
+        {"text": "a", "feature_vector": [0.0] * 8, "hook_label": 1, "drop_off_risk": 0.0,
+         "quality_score": 5.0, "retention_curve": None},
+        {"text": "b", "feature_vector": [0.0] * 8, "hook_label": 0, "drop_off_risk": 1.0,
+         "quality_score": 5.0, "retention_curve": [100.0, 50.0]},
+    ]
+    ds = VideoEditorialDataset(items, tokenizer=None)
+    assert float(ds[0]["drop_off_mask"]) == 0.0 and float(ds[1]["drop_off_mask"]) == 1.0
+
+    model = VideoEditorialTransformer(EditorialModelConfig(use_peft=False))
+    model.eval()
+    ids, att = torch.ones(2, 4, dtype=torch.long), torch.ones(2, 4, dtype=torch.long)
+    labels = torch.tensor([0.0, 1.0])
+    out_masked = model(ids, att, drop_off_labels=labels, drop_off_mask=torch.tensor([0.0, 1.0]))
+    out_only_b = model(ids[1:], att[1:], drop_off_labels=labels[1:])
+    assert torch.allclose(out_masked["loss_drop_off"], out_only_b["loss_drop_off"], atol=1e-5)

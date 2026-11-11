@@ -163,8 +163,13 @@ def evaluate_dataset(
     tokenizer: Optional[Any],
     device: str = "cpu",
     batch_size: int = 8,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """Run full evaluation over test dataset and return metric dict and error analysis."""
+    return_predictions: bool = False,
+):
+    """Run full evaluation over test dataset and return metric dict and error analysis.
+
+    With ``return_predictions=True`` a third element is returned: a dict of numpy arrays
+    (hook/drop/quality preds and targets) aligned with ``dataset`` for per-subset metrics.
+    """
     eval_ds = VideoEditorialDataset(dataset, tokenizer=tokenizer)
     dataloader = DataLoader(eval_ds, batch_size=batch_size, shuffle=False)
 
@@ -211,7 +216,46 @@ def evaluate_dataset(
     metrics_result = compute_editorial_metrics(hp, ht, dp, dt, qp, qt, latency_ms_per_sample=latency_ms)
     error_analysis = perform_error_analysis(dataset, hp, dp, qp)
 
+    if return_predictions:
+        preds = {"hp": hp, "ht": ht, "dp": dp, "dt": dt, "qp": qp, "qt": qt, "latency_ms": latency_ms}
+        return metrics_result, error_analysis, preds
     return metrics_result, error_analysis
+
+
+def has_retention_label(sample: Dict) -> bool:
+    """True when drop_off_risk comes from a measured retention curve (not a placeholder)."""
+    return sample.get("retention_curve") is not None
+
+
+def metrics_by_source(dataset: List[Dict], preds: Dict[str, Any]) -> Dict[str, Any]:
+    """Per-source metrics plus a retention-labeled-only aggregate.
+
+    Sources without measured retention curves (e.g. tiktok_hooks) carry a placeholder
+    drop_off_risk=0.0, so their drop-off metrics are reported as None rather than
+    counted as true negatives.
+    """
+    sources = [str(s.get("source") or "unknown") for s in dataset]
+    retention = np.array([has_retention_label(s) for s in dataset])
+    groups: Dict[str, np.ndarray] = {src: np.array([x == src for x in sources]) for src in sorted(set(sources))}
+    if retention.any() and not retention.all():
+        groups["ALL_retention_labeled"] = retention
+
+    out: Dict[str, Any] = {}
+    for name, mask in groups.items():
+        if mask.sum() == 0:
+            continue
+        m = compute_editorial_metrics(
+            preds["hp"][mask], preds["ht"][mask], preds["dp"][mask], preds["dt"][mask],
+            preds["qp"][mask], preds["qt"][mask],
+        )
+        m.pop("efficiency", None)
+        if not retention[mask].any():
+            m["drop_off_prediction"] = {"roc_auc": None, "pr_auc": None, "brier_score": None,
+                                        "note": "no measured retention curve in this source"}
+        m["n"] = int(mask.sum())
+        m["hook_positive_rate"] = round(float((preds["ht"][mask] >= 0.5).mean()), 4)
+        out[name] = m
+    return out
 
 
 def generate_markdown_summary(
@@ -220,6 +264,7 @@ def generate_markdown_summary(
     error_analysis: Dict[str, Any],
     model_name: str,
     dataset_note: str = "",
+    per_source: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Format evaluation results into a Markdown report table."""
     md = [
@@ -275,6 +320,22 @@ def generate_markdown_summary(
         md.append(f"- Sample `{err['sample_id']}`: Target `{err['target_quality']}` vs Predicted `{err['predicted_quality']}` (Error: `{err['absolute_error']}`)")
         md.append(f"  *Text:* \"{err['text']}\"")
 
+    if per_source:
+        def _f(v):
+            return "n/a" if v is None else f"{v:.4f}"
+        md.extend([
+            "\n## 4. Per-Source Breakdown (fine-tuned)\n",
+            "| Source | n | Hook pos. rate | Hook F1 | Hook ROC-AUC | Drop-off ROC-AUC | Drop-off PR-AUC | Quality RMSE | Quality r |",
+            "| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ])
+        for name, m in per_source.items():
+            h, d, q = m["hook_detection"], m["drop_off_prediction"], m["quality_scoring"]
+            md.append(
+                f"| {name} | {m['n']} | {m['hook_positive_rate']:.3f} | {_f(h['f1_score'])} | {_f(h['roc_auc'])} | "
+                f"{_f(d['roc_auc'])} | {_f(d['pr_auc'])} | {_f(q['rmse'])} | {_f(q['pearson_correlation'])} |"
+            )
+        md.append("\n> Drop-off is `n/a` for sources without a measured retention curve (placeholder label, not a true negative).")
+
     return "\n".join(md)
 
 
@@ -327,7 +388,10 @@ def main():
         logger.info("No checkpoint provided; evaluating initialized PEFT model.")
         ft_model = VideoEditorialTransformer(EditorialModelConfig(base_model_name=args.base_model, use_peft=True))
 
-    ft_metrics, error_analysis = evaluate_dataset(ft_model, test_split, tokenizer=tokenizer, device=args.device)
+    ft_metrics, error_analysis, ft_preds = evaluate_dataset(
+        ft_model, test_split, tokenizer=tokenizer, device=args.device, return_predictions=True
+    )
+    per_source = metrics_by_source(test_split, ft_preds) if not is_synthetic else {}
 
     # 4. Generate Reports
     dataset_note = (
@@ -338,7 +402,8 @@ def main():
         else f"Dataset: {args.dataset_path}; test split = {len(test_split)} samples from {len(test_groups)} group(s)."
     )
     md_report = generate_markdown_summary(
-        base_metrics, ft_metrics, error_analysis, model_name=args.base_model, dataset_note=dataset_note
+        base_metrics, ft_metrics, error_analysis, model_name=args.base_model, dataset_note=dataset_note,
+        per_source=per_source,
     )
     json_report = {
         "model_name": args.base_model,
@@ -351,6 +416,7 @@ def main():
         "baseline_metrics": base_metrics,
         "fine_tuned_metrics": ft_metrics,
         "error_analysis": error_analysis,
+        "per_source_metrics": per_source,
     }
 
     with open(out_path / "evaluation_results.json", "w") as f:

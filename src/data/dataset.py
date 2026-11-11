@@ -75,6 +75,10 @@ class VideoEditorialDataset(Dataset):
         if self.include_labels:
             data["hook_label"] = torch.tensor(float(item.get("hook_label", 0.0)), dtype=torch.float32)
             data["drop_off_risk"] = torch.tensor(float(item.get("drop_off_risk", 0.0)), dtype=torch.float32)
+            # Sources with retention_curve=None (e.g. tiktok_hooks) carry a placeholder drop-off label:
+            # mask it out of the drop-off loss instead of training on it as a true negative.
+            has_drop = "retention_curve" not in item or item["retention_curve"] is not None
+            data["drop_off_mask"] = torch.tensor(1.0 if has_drop else 0.0, dtype=torch.float32)
             data["quality_score"] = torch.tensor(float(item.get("quality_score", 5.0)), dtype=torch.float32)
 
         return data

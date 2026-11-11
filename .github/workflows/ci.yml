@@ -23,7 +23,7 @@ jobs:
       - name: Install System Dependencies (FFmpeg)
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg libsndfile1
+          sudo apt-get install -y -o Acquire::Retries=3 --fix-missing ffmpeg libsndfile1
 
       - name: Install Python Dependencies
         run: |

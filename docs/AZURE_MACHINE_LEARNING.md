@@ -25,7 +25,7 @@ flowchart TD
         C["DefaultAzureCredential\n/ Service Principal"] --> B
     end
     subgraph AML["Azure Machine Learning Workspace"]
-        B --> D["Compute Cluster\ngpu-cluster-v100 / LowPriority"]
+        B --> D["Compute Cluster\ngpu-cluster-t4 / LowPriority"]
         B --> E["Environment\nvideo-editorial-env"]
         D --> F["Command Job: PEFT LoRA Fine-Tuning"]
         E --> F

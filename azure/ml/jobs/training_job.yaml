@@ -14,15 +14,19 @@ command: >-
   --batch-size ${{inputs.batch_size}}
   --lr ${{inputs.learning_rate}}
   --device cuda
+  --dataset-path ${{inputs.dataset}}
 
 environment: azureml:video-editorial-env:1
-compute: azureml:gpu-cluster-v100
+compute: azureml:gpu-cluster-t4
 
 inputs:
   base_model: "distilbert-base-uncased"
   epochs: 3
   batch_size: 8
   learning_rate: 0.0002
+  dataset:
+    type: uri_file
+    path: ../../data/real/combined_v2.jsonl   # produced by src.data.real.collect (see docs/DATASETS.md)
 
 outputs:
   model_output:

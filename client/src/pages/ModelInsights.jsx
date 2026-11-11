@@ -67,7 +67,7 @@ export default function ModelInsights() {
             <SpecItem label="Base Model" value="distilbert-base-uncased" />
             <SpecItem label="Fine-tuning Method" value="PEFT LoRA (q_lin, v_lin)" />
             <SpecItem label="Prediction Heads" value="Hook / Drop-off / Quality" />
-            <SpecItem label="Training Dataset" value="TTCC ads w/ real retention curves (+70 synthetic)" />
+            <SpecItem label="Training Dataset" value="18,150 real samples: TTCC + vRetention + YouTube captions + TikTok hooks" />
             <SpecItem label="Inference" value="PyTorch on CPU" />
           </ul>
         </motion.div>
@@ -76,18 +76,18 @@ export default function ModelInsights() {
         <motion.div variants={itemVariants} className="premium-panel p-6">
           <h2 className="text-lg font-semibold mb-6 flex items-center space-x-2 border-b border-[#222] pb-4">
             <GitCommit className="w-5 h-5 text-gray-400" />
-            <span>Held-out Real Ads Test (216 TikTok ads, measured retention labels)</span>
+            <span>Held-out Test (2,787 samples, group-aware split) — per-source</span>
           </h2>
           <div className="space-y-6">
-            <MetricBar label="Drop-off ROC-AUC" value="0.73" isText />
-            <MetricBar label="Drop-off PR-AUC" value="0.91" isText />
-            <MetricBar label="Hook ROC-AUC (F1 0.00, uncalibrated)" value="0.64" isText />
-            <MetricBar label="Quality RMSE (Pearson r ≈ 0)" value="0.92" isText />
-            <MetricBar label="CPU Latency" value="~43 ms / segment" isText />
+            <MetricBar label="Drop-off ROC-AUC (TTCC / vRetention)" value="0.64 / 0.62" isText />
+            <MetricBar label="Drop-off PR-AUC (TTCC / vRetention)" value="0.81 / 0.87" isText />
+            <MetricBar label="Hook ROC-AUC (TTCC, F1 0.38)" value="0.66" isText />
+            <MetricBar label="Quality RMSE (TTCC, Pearson r 0.08)" value="0.99" isText />
+            <MetricBar label="CPU Latency" value="~65 ms / segment" isText />
           </div>
           <p className="text-[11px] text-[#666] mt-6 leading-relaxed">
-            1,500 ads collected via src/data/real (see docs/DATASETS.md + docs/EVALUATION.md). Real
-            drop-off learning; hook/quality heads honest early results, not production-grade.
+            Real measured retention curves (TTCC, vRetention) + engagement-labeled TikTok hooks; see
+            docs/DATASETS.md + docs/EVALUATION.md. Modest, real signal — a baseline to beat, not production accuracy.
           </p>
         </motion.div>
       </div>

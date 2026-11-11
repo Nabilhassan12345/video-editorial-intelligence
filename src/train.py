@@ -146,6 +146,7 @@ def train_epoch(
             drop_off_labels=drop_off,
             quality_labels=quality,
             loss_weights=loss_weights,
+            drop_off_mask=batch["drop_off_mask"].to(device) if "drop_off_mask" in batch else None,
         )
 
         loss = outputs["loss"]
@@ -188,6 +189,7 @@ def evaluate_model(
                 drop_off_labels=drop_off,
                 quality_labels=quality,
                 loss_weights=loss_weights,
+                drop_off_mask=batch["drop_off_mask"].to(device) if "drop_off_mask" in batch else None,
             )
 
             total_loss += outputs["loss"].item()
