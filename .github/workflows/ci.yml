@@ -9,7 +9,8 @@ on:
 jobs:
   python-test:
     name: PyTorch, PEFT & Pipeline Verification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,10 +21,11 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
-      - name: Install System Dependencies (FFmpeg)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y -o Acquire::Retries=3 --fix-missing ffmpeg libsndfile1
+      # Static FFmpeg build from GitHub releases; avoids flaky apt mirrors on hosted runners.
+      - name: Install FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
 
       - name: Install Python Dependencies
         run: |

@@ -25,6 +25,7 @@ checkpoints/
 data/real/
 runs/
 outputs/
+reports/
 *.pt
 *.bin
 *.safetensors
