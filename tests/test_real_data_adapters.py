@@ -75,3 +75,23 @@ def test_collected_schema_matches_training(tmp_path: Path):
                 "drop_off_risk", "quality_score"):
         assert key in row
     assert len(row["feature_vector"]) == 8
+
+
+def test_tiktok_hooks_quality_mapping_is_monotonic_and_bounded():
+    from src.data.real.tiktok_hooks import _quality_from_outlier
+    assert _quality_from_outlier(0) == 1.0
+    assert _quality_from_outlier(1) == 2.5
+    assert _quality_from_outlier(10) < _quality_from_outlier(100)
+    assert _quality_from_outlier(1e6) == 10.0
+
+
+def test_vtt_to_text_dedupes_and_strips_tags(tmp_path: Path):
+    from src.data.real.youtube import _vtt_to_text
+    vtt = tmp_path / "c.vtt"
+    vtt.write_text(
+        "WEBVTT\nKind: captions\nLanguage: en\n\n"
+        "00:00:00.000 --> 00:00:01.000\nhello <c>world</c>\n\n"
+        "00:00:01.000 --> 00:00:02.000\nhello world\nnext line\n",
+        encoding="utf-8",
+    )
+    assert _vtt_to_text(str(vtt)) == "hello world next line"

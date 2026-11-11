@@ -34,6 +34,12 @@ def _iter_source(args):
             ),
             {"dataset": DATASET_ID, "license": LICENSE_NOTE},
         )
+    if args.source == "tiktok-hooks":
+        from src.data.real.tiktok_hooks import DATASET_ID, LICENSE_NOTE, collect_tiktok_hooks
+        return (
+            collect_tiktok_hooks(limit=args.limit, lang=args.lang),
+            {"dataset": DATASET_ID, "license": LICENSE_NOTE},
+        )
     if args.source == "youtube":
         if not args.csv_path:
             raise SystemExit("--csv-path is required for source=youtube (vRetention youtube.csv)")
@@ -56,7 +62,7 @@ def _iter_source(args):
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="collect-real-data", description=__doc__)
-    p.add_argument("--source", choices=["ttcc", "vretention", "youtube"], required=True)
+    p.add_argument("--source", choices=["ttcc", "vretention", "youtube", "tiktok-hooks"], required=True)
     p.add_argument("--limit", type=int, default=1000)
     p.add_argument("--out", type=str, required=True)
     p.add_argument("--csv-path", type=str, default=None,
@@ -69,6 +75,8 @@ def main(argv=None):
     p.add_argument("--sleep", type=float, default=1.0,
                    help="youtube: seconds to wait between caption requests")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--lang", type=str, default="en",
+                   help="tiktok-hooks: keep only hooks in this language")
     args = p.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
