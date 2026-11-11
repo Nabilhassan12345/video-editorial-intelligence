@@ -153,109 +153,113 @@ def main():
 
                 try:
                     result = pipeline.run(video_path=video_temp_path, transcript_input=transcript_text)
-                    if result.metadata.get("model_status") != "fine_tuned":
-                        st.error(result.metadata.get("prediction_note", "Model heads are untrained."))
-                    else:
-                        st.info(result.metadata.get("prediction_note", ""))
-
-                    # Display Top Metrics
-                    st.markdown("---")
-                    st.subheader("📊 Editorial Intelligence Overview")
-                    m1, m2, m3, m4 = st.columns(4)
-                    with m1:
-                        st.metric("Content Quality Score", f"{result.quality_score:.1f} / 10.0")
-                    with m2:
-                        st.metric("Hook Confidence", f"{result.hook_confidence * 100:.0f}%")
-                    with m3:
-                        st.metric("Identified Drop-Offs", f"{len(result.drop_off_risks)}")
-                    with m4:
-                        st.metric("Timeline Segments", f"{len(result.segments)}")
-
-                    # Hook Callout
-                    st.markdown(
-                        f"""
-                        <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 16px; border-radius: 6px; margin: 16px 0;">
-                            <strong style="color: #38bdf8;">🎯 Optimal Introductory Hook:</strong><br>
-                            <span style="font-size: 1.1em; color: #f4f4f5;">{result.hook}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-
-                    # Retention Curve Chart
-                    st.subheader("📈 Modeled Retention Index (heuristic)")
-                    df_retention = pd.DataFrame(result.retention_curve)
-                    if not df_retention.empty:
-                        st.line_chart(df_retention.set_index("timestamp")["modeled_retention_index"])
-                        st.caption(result.metadata.get("retention_curve_note", "Heuristic index, not measured retention."))
-
-                    # Recommendations & Risks
-                    c_rec, c_risk = st.columns([1, 1])
-
-                    with c_rec:
-                        st.subheader("💡 Strategic Editing Recommendations")
-                        for i, imp in enumerate(result.improvements, 1):
-                            st.markdown(f"**{i}.** {imp}")
-
-                    with c_risk:
-                        st.subheader("⚠️ Retention Drop-Off Alerts")
-                        if result.drop_off_risks:
-                            for r in result.drop_off_risks:
-                                with st.expander(f"{r.timestamp} - {r.reason} (Risk: {r.risk_score * 100:.0f}%)", expanded=True):
-                                    st.write(r.explanation)
-                                    ev = r.evidence
-                                    st.caption(
-                                        f"Speaking Rate: {ev.get('speaking_rate_wpm', 0)} WPM | "
-                                        f"Silence: {ev.get('silence_ratio', 0)}% | "
-                                        f"Fillers: {ev.get('filler_word_ratio', 0)}%"
-                                    )
-                        else:
-                            st.success("No high-risk drop-off points detected.")
-
-                    # Segment Table
-                    st.subheader("⏱️ Detailed Segment Timeline")
-                    df_segments = pd.DataFrame(result.segments)[
-                        ["start_timestamp", "end_timestamp", "text", "hook_score", "risk_score", "quality_score", "wpm"]
-                    ]
-                    st.dataframe(df_segments, use_container_width=True)
-
-                    # Report Downloads
-                    st.markdown("---")
-                    st.subheader("📥 Export Reports")
-                    d_json, d_md, d_html = st.columns(3)
-
-                    with d_json:
-                        st.download_button(
-                            label="Download JSON Report",
-                            data=ReportGenerator.to_json(result),
-                            file_name="editorial_analysis.json",
-                            mime="application/json",
-                            use_container_width=True,
-                        )
-
-                    with d_md:
-                        st.download_button(
-                            label="Download Markdown Report",
-                            data=ReportGenerator.to_markdown(result),
-                            file_name="editorial_analysis.md",
-                            mime="text/markdown",
-                            use_container_width=True,
-                        )
-
-                    with d_html:
-                        st.download_button(
-                            label="Download HTML Report",
-                            data=ReportGenerator.to_html(result),
-                            file_name="editorial_analysis.html",
-                            mime="text/html",
-                            use_container_width=True,
-                        )
-
+                    st.session_state["analysis_result"] = result
                 except Exception as e:
+                    st.session_state.pop("analysis_result", None)
                     st.error(f"Analysis failed: {str(e)}")
                 finally:
                     if video_temp_path and os.path.exists(video_temp_path):
                         os.remove(video_temp_path)
+
+        result = st.session_state.get("analysis_result")
+        if result is not None:
+            if result.metadata.get("model_status") != "fine_tuned":
+                st.error(result.metadata.get("prediction_note", "Model heads are untrained."))
+            else:
+                st.info(result.metadata.get("prediction_note", ""))
+
+            # Display Top Metrics
+            st.markdown("---")
+            st.subheader("📊 Editorial Intelligence Overview")
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("Content Quality Score", f"{result.quality_score:.1f} / 10.0")
+            with m2:
+                st.metric("Hook Confidence", f"{result.hook_confidence * 100:.0f}%")
+            with m3:
+                st.metric("Identified Drop-Offs", f"{len(result.drop_off_risks)}")
+            with m4:
+                st.metric("Timeline Segments", f"{len(result.segments)}")
+
+            # Hook Callout
+            st.markdown(
+                f"""
+                <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 16px; border-radius: 6px; margin: 16px 0;">
+                    <strong style="color: #38bdf8;">🎯 Optimal Introductory Hook:</strong><br>
+                    <span style="font-size: 1.1em; color: inherit;">{result.hook}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Retention Curve Chart
+            st.subheader("📈 Modeled Retention Index (heuristic)")
+            df_retention = pd.DataFrame(result.retention_curve)
+            if not df_retention.empty:
+                st.line_chart(df_retention.set_index("timestamp")["modeled_retention_index"])
+                st.caption(result.metadata.get("retention_curve_note", "Heuristic index, not measured retention."))
+
+            # Recommendations & Risks
+            c_rec, c_risk = st.columns([1, 1])
+
+            with c_rec:
+                st.subheader("💡 Strategic Editing Recommendations")
+                for i, imp in enumerate(result.improvements, 1):
+                    st.markdown(f"**{i}.** {imp}")
+
+            with c_risk:
+                st.subheader("⚠️ Retention Drop-Off Alerts")
+                if result.drop_off_risks:
+                    for r in result.drop_off_risks:
+                        with st.expander(f"{r.timestamp} - {r.reason} (Risk: {r.risk_score * 100:.0f}%)", expanded=True):
+                            st.write(r.explanation)
+                            ev = r.evidence
+                            st.caption(
+                                f"Speaking Rate: {ev.get('speaking_rate_wpm', 0)} WPM | "
+                                f"Silence: {ev.get('silence_ratio', 0)}% | "
+                                f"Fillers: {ev.get('filler_word_ratio', 0)}%"
+                            )
+                else:
+                    st.success("No high-risk drop-off points detected.")
+
+            # Segment Table
+            st.subheader("⏱️ Detailed Segment Timeline")
+            df_segments = pd.DataFrame(result.segments)[
+                ["start_timestamp", "end_timestamp", "text", "hook_score", "risk_score", "quality_score", "wpm"]
+            ]
+            st.dataframe(df_segments, use_container_width=True)
+
+            # Report Downloads
+            st.markdown("---")
+            st.subheader("📥 Export Reports")
+            d_json, d_md, d_html = st.columns(3)
+
+            with d_json:
+                st.download_button(
+                    label="Download JSON Report",
+                    data=ReportGenerator.to_json(result),
+                    file_name="editorial_analysis.json",
+                    mime="application/json",
+                    use_container_width=True,
+                )
+
+            with d_md:
+                st.download_button(
+                    label="Download Markdown Report",
+                    data=ReportGenerator.to_markdown(result),
+                    file_name="editorial_analysis.md",
+                    mime="text/markdown",
+                    use_container_width=True,
+                )
+
+            with d_html:
+                st.download_button(
+                    label="Download HTML Report",
+                    data=ReportGenerator.to_html(result),
+                    file_name="editorial_analysis.html",
+                    mime="text/html",
+                    use_container_width=True,
+                )
 
     with tab_sample:
         st.subheader("📖 Saved Example Output")

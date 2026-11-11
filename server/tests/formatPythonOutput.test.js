@@ -28,3 +28,12 @@ test('formatPythonOutput tolerates an empty report', () => {
   assert.deepStrictEqual(out.drop_off_risks, []);
   assert.strictEqual(out.model_status, 'unknown');
 });
+
+test('formatPythonOutput passes through the heuristic retention index and real run metadata', () => {
+  const out = formatPythonOutput(sample);
+  assert.strictEqual(out.retention_curve.length, sample.retention_curve.length);
+  assert.strictEqual(out.retention_curve[0].index, sample.retention_curve[0].modeled_retention_index);
+  assert.strictEqual(out.duration_seconds, sample.metadata.total_duration_sec);
+  assert.match(out.model_name, /distilbert/);
+  assert.ok(!/llama/i.test(JSON.stringify(out)));
+});

@@ -69,7 +69,7 @@ export default function ResultsDisplay({ results }) {
       <motion.div variants={itemVariants} className="premium-panel p-6">
         <div className="flex items-center space-x-3 mb-6 border-b border-[#222] pb-4">
           <Activity className="w-5 h-5 text-gray-400" />
-          <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Predicted Retention Curve</h2>
+          <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Modeled Retention Index (heuristic)</h2>
         </div>
         <RetentionGraph dropOffRisks={drop_off_risks} />
       </motion.div>

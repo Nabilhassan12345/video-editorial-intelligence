@@ -9,43 +9,43 @@ import {
   ReferenceDot
 } from 'recharts';
 
-export default function RetentionGraph({ dropOffRisks }) {
+const toSeconds = (ts) => {
+  const match = String(ts || '').match(/(\d{1,2}):(\d{2})/);
+  return match ? parseInt(match[1], 10) * 60 + parseInt(match[2], 10) : null;
+};
+
+const formatTime = (secs) =>
+  `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
+
+/**
+ * Plots a heuristic retention index (100 = start). Uses the Python pipeline's
+ * modeled_retention_index when available; otherwise derives the same kind of
+ * index deterministically from per-segment risk scores. Not measured retention.
+ */
+export default function RetentionGraph({ retentionCurve, segments = [], dropOffRisks = [] }) {
   const data = useMemo(() => {
-    let retention = 100;
-    const curve = [];
-    const totalPoints = 40; // Higher fidelity for smoother curve
+    const riskSeconds = dropOffRisks.map(r => toSeconds(r.timestamp)).filter(s => s !== null);
+    const isRisk = (secs) => riskSeconds.some(r => Math.abs(r - secs) < 1);
 
-    for (let i = 0; i <= totalPoints; i++) {
-      const minutes = (i / totalPoints) * 10;
-      
-      // Natural decay
-      retention = retention - (Math.random() * 1.5 + 0.5);
-
-      const hasDropOff = dropOffRisks.some(risk => {
-        const timeStr = risk.timestamp.replace(/\[|\]/g, ''); 
-        const [min, sec] = timeStr.split(':').map(Number);
-        if (min !== undefined && sec !== undefined) {
-          const riskMinutes = min + (sec / 60);
-          return Math.abs(minutes - riskMinutes) < 0.25;
-        }
-        return false;
-      });
-
-      if (hasDropOff) {
-        retention -= 8; 
-      }
-      
-      if (retention < 0) retention = 0;
-
-      curve.push({
-        time: `${Math.floor(minutes)}:${String(Math.floor((minutes % 1) * 60)).padStart(2, '0')}`,
-        retention: Math.max(retention, 5), 
-        isDropOff: hasDropOff
-      });
+    if (Array.isArray(retentionCurve) && retentionCurve.length > 0) {
+      return retentionCurve.map(pt => ({
+        time: formatTime(pt.seconds),
+        index: pt.index,
+        isDropOff: isRisk(pt.seconds),
+      }));
     }
 
-    return curve;
-  }, [dropOffRisks]);
+    let index = 100;
+    return segments.map(seg => {
+      const secs = toSeconds(seg.start_time) ?? 0;
+      index = Math.max(index - (seg.risk_score || 0) * 0.8, 0);
+      return { time: formatTime(secs), index: Math.round(index * 10) / 10, isDropOff: isRisk(secs) };
+    });
+  }, [retentionCurve, segments, dropOffRisks]);
+
+  if (data.length === 0) {
+    return <div className="text-xs text-[#666]">No segment data available to plot.</div>;
+  }
 
   return (
     <div className="h-[280px] w-full">
@@ -57,28 +57,29 @@ export default function RetentionGraph({ dropOffRisks }) {
               <stop offset="95%" stopColor="#ffffff" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <XAxis 
-            dataKey="time" 
-            stroke="#444" 
+          <XAxis
+            dataKey="time"
+            stroke="#444"
             tick={{ fill: '#666', fontSize: 11, fontFamily: 'Inter' }}
             tickLine={false}
             axisLine={false}
             minTickGap={40}
             dy={10}
           />
-          <YAxis 
-            stroke="#444" 
+          <YAxis
+            stroke="#444"
             tick={{ fill: '#666', fontSize: 11, fontFamily: 'Inter' }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `${Math.round(value)}%`}
+            domain={[0, 100]}
+            tickFormatter={(value) => `${Math.round(value)}`}
             dx={-10}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: '#0A0A0A', 
-              borderColor: '#222', 
-              borderRadius: '8px', 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: '#0A0A0A',
+              borderColor: '#222',
+              borderRadius: '8px',
               color: '#fff',
               boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
               fontFamily: 'Inter',
@@ -87,33 +88,29 @@ export default function RetentionGraph({ dropOffRisks }) {
             itemStyle={{ color: '#fff' }}
             labelStyle={{ color: '#888', marginBottom: '4px' }}
             cursor={{ stroke: '#333', strokeWidth: 1, strokeDasharray: '4 4' }}
-          />
-          
-          <Area 
-            type="monotone" 
-            dataKey="retention" 
-            stroke="#ffffff" 
-            strokeWidth={1.5}
-            fillOpacity={1} 
-            fill="url(#colorRetention)" 
+            formatter={(value) => [value, 'Heuristic index']}
           />
 
-          {data.map((entry, index) => {
-            if (entry.isDropOff) {
-              return (
-                <ReferenceDot 
-                  key={index} 
-                  x={entry.time} 
-                  y={entry.retention} 
-                  r={4} 
-                  fill="#000" 
-                  stroke="#fff" 
-                  strokeWidth={1.5} 
-                />
-              );
-            }
-            return null;
-          })}
+          <Area
+            type="monotone"
+            dataKey="index"
+            stroke="#ffffff"
+            strokeWidth={1.5}
+            fillOpacity={1}
+            fill="url(#colorRetention)"
+          />
+
+          {data.map((entry, idx) => entry.isDropOff ? (
+            <ReferenceDot
+              key={idx}
+              x={entry.time}
+              y={entry.index}
+              r={4}
+              fill="#000"
+              stroke="#fff"
+              strokeWidth={1.5}
+            />
+          ) : null)}
         </AreaChart>
       </ResponsiveContainer>
     </div>

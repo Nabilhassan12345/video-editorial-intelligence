@@ -47,10 +47,19 @@ export default function Results() {
     );
   }
 
-  const { hook, drop_off_risks, quality_score, improvements, segments, transcript, source, model_status, prediction_note } = results;
+  const {
+    hook, drop_off_risks, quality_score, improvements, segments, transcript, source, model_status, prediction_note,
+    retention_curve, retention_curve_note, duration_seconds, processing_time_ms, model_name,
+  } = results;
   const showModelWarning = source === 'mock' || (source === 'python_model' && model_status !== 'fine_tuned');
-  const wordCount = transcript ? transcript.split(' ').length : 1450;
-  const estDuration = Math.round(wordCount / 150); // ~150 words per minute
+  const wordCount = transcript ? transcript.trim().split(/\s+/).length : 0;
+  const lastSegmentEnd = (segments || []).reduce((max, seg) => {
+    const m = String(seg.end_time || '').match(/(\d{1,2}):(\d{2})/);
+    return m ? Math.max(max, parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : max;
+  }, 0);
+  const durationSecs = duration_seconds || lastSegmentEnd || Math.round((wordCount / 150) * 60);
+  const durationLabel = `${Math.floor(durationSecs / 60)}m ${String(Math.round(durationSecs % 60)).padStart(2, '0')}s`;
+  const processingLabel = typeof processing_time_ms === 'number' ? `${(processing_time_ms / 1000).toFixed(2)}s` : 'n/a';
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -124,7 +133,7 @@ export default function Results() {
       <motion.div variants={itemVariants} className="flex items-center space-x-6 text-xs text-[#666] border-b border-[#222] pb-6 mb-8 font-mono">
         <div className="flex items-center space-x-2">
           <span className="uppercase tracking-wider">Est. Duration:</span>
-          <span className="text-white">{estDuration}m</span>
+          <span className="text-white">{durationLabel}</span>
         </div>
         <div className="w-1 h-1 rounded-full bg-[#333]"></div>
         <div className="flex items-center space-x-2">
@@ -134,12 +143,12 @@ export default function Results() {
         <div className="w-1 h-1 rounded-full bg-[#333]"></div>
         <div className="flex items-center space-x-2">
           <span className="uppercase tracking-wider">Processing Time:</span>
-          <span className="text-white">4.52s</span>
+          <span className="text-white">{processingLabel}</span>
         </div>
         <div className="w-1 h-1 rounded-full bg-[#333]"></div>
         <div className="flex items-center space-x-2">
           <span className="uppercase tracking-wider">Model:</span>
-          <span className="text-white">Llama-3-QLoRA</span>
+          <span className="text-white">{model_name || source || 'unknown'}</span>
         </div>
       </motion.div>
 
@@ -153,7 +162,7 @@ export default function Results() {
               <Flame className="w-5 h-5 text-gray-400" />
               <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Optimal Hook Segment</h2>
             </div>
-            <span className="text-[10px] text-green-400 font-mono bg-green-950/30 px-2 py-1 rounded border border-green-900/50">HIGH RETENTION LIKELIHOOD</span>
+            <span className="text-[10px] text-green-400 font-mono bg-green-950/30 px-2 py-1 rounded border border-green-900/50">MODEL-SELECTED HOOK</span>
           </div>
           <div className="bg-[#050505] border border-[#222] p-4 rounded-lg relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-white"></div>
@@ -191,16 +200,19 @@ export default function Results() {
           <Activity className="w-5 h-5 text-gray-400" />
           <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Event Timeline</h2>
         </div>
-        <TimelineVisualization hook={hook} risks={drop_off_risks} />
+        <TimelineVisualization hook={hook} risks={drop_off_risks} durationSeconds={durationSecs} />
       </motion.div>
 
       {/* Graph Row */}
       <motion.div variants={itemVariants} className="premium-panel p-6">
         <div className="flex items-center space-x-3 mb-6 border-b border-[#222] pb-4">
           <LineChartIcon className="w-5 h-5 text-gray-400" />
-          <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Predicted Retention Curve</h2>
+          <h2 className="text-sm font-semibold text-[#888] uppercase tracking-wider">Modeled Retention Index (heuristic)</h2>
         </div>
-        <RetentionGraph dropOffRisks={drop_off_risks} />
+        <RetentionGraph retentionCurve={retention_curve} segments={segments} dropOffRisks={drop_off_risks} />
+        <p className="text-[10px] text-[#666] mt-3">
+          {retention_curve_note || 'Heuristic index (100 = start) derived from per-segment drop-off risk. Not measured audience retention.'}
+        </p>
       </motion.div>
 
       {/* Deep Analysis Row: Risks & Segments */}

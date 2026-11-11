@@ -32,12 +32,24 @@ function formatPythonOutput(pyData) {
     engagement_score: Math.round(seg.quality_score || 0),
   }));
 
+  const retention_curve = (Array.isArray(pyData.retention_curve) ? pyData.retention_curve : [])
+    .filter(pt => typeof pt.seconds === 'number' && typeof pt.modeled_retention_index === 'number')
+    .map(pt => ({ seconds: pt.seconds, index: pt.modeled_retention_index }));
+
+  const lastEnd = pySegments.reduce((max, seg) => Math.max(max, seg.end_time || 0), 0);
+  const processingSec = metadata.total_processing_time_sec;
+
   return {
     hook: pyData.hook || 'No specific hook identified.',
     drop_off_risks,
     quality_score: typeof pyData.quality_score === 'number' ? Math.round(pyData.quality_score * 10) / 10 : 0,
     improvements: Array.isArray(pyData.improvements) ? pyData.improvements : [],
     segments,
+    retention_curve,
+    retention_curve_note: metadata.retention_curve_note || '',
+    duration_seconds: metadata.total_duration_sec || lastEnd || null,
+    processing_time_ms: typeof processingSec === 'number' ? Math.round(processingSec * 1000) : null,
+    model_name: 'distilbert-base-uncased + LoRA',
     source: 'python_model',
     model_status: metadata.model_status || 'unknown',
     prediction_note: metadata.prediction_note || '',
@@ -58,24 +70,26 @@ function formatSeconds(secs) {
  * Main analysis pipeline.
  *
  * Attempts the real Python ML pipeline first; if unavailable (Python not found,
- * model weights missing, timeout, etc.) silently falls back to the OpenAI GPT-4o flow.
+ * model weights missing, timeout, etc.) silently falls back to the OpenAI (gpt-4o-mini) or mock flow.
  */
 async function run(rawTranscript) {
+  const startedAt = Date.now();
   // --- Attempt 1: Python ML pipeline (PyTorch + PEFT LoRA) ---
   try {
     console.log('[Pipeline] Attempting real Python ML pipeline...');
     const pyData = await runPythonPipeline(rawTranscript);
     const result = formatPythonOutput(pyData);
+    result.processing_time_ms = Date.now() - startedAt;
     console.log('[Pipeline] Python ML pipeline succeeded — returning enriched result.');
     return result;
   } catch (pyErr) {
     console.warn(
-      '[Pipeline] Python pipeline unavailable, falling back to OpenAI GPT-4o flow.',
+      '[Pipeline] Python pipeline unavailable, falling back to OpenAI/mock flow.',
       pyErr.message
     );
   }
 
-  // --- Fallback: OpenAI GPT-4o (original behavior) ---
+  // --- Fallback: OpenAI gpt-4o-mini or mock (original behavior) ---
   // Step 1 & 2: Input & Preprocessing
   console.log('[Pipeline] Step 1 & 2: Segmenting and extracting heuristics...');
   const preprocessedData = segmentTranscript(rawTranscript);
@@ -88,6 +102,8 @@ async function run(rawTranscript) {
   console.log('[Pipeline] Step 4: Formatting and validating output...');
   const finalResult = formatAndValidateOutput(rawLlmResponse);
   finalResult.source = process.env.OPENAI_API_KEY ? 'openai' : 'mock';
+  finalResult.model_name = finalResult.source === 'openai' ? 'gpt-4o-mini (OpenAI API)' : 'mock (no model)';
+  finalResult.processing_time_ms = Date.now() - startedAt;
   if (finalResult.source === 'mock') {
     finalResult.prediction_note = 'Illustrative mock response: no Python model and no OPENAI_API_KEY were available.';
   }

@@ -1,8 +1,9 @@
 import { AlertTriangle, Flame } from 'lucide-react';
 
-export default function TimelineVisualization({ hook, risks }) {
-  // Mock timeline length of 10 minutes (600 seconds) for visualization purposes
-  const VIDEO_LENGTH_SECONDS = 600;
+export default function TimelineVisualization({ hook, risks, durationSeconds }) {
+  const VIDEO_LENGTH_SECONDS = durationSeconds > 0 ? durationSeconds : 600;
+  const formatTime = (secs) =>
+    `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
 
   const parseTimestamp = (ts) => {
     // Basic parser for "[01:45]" format
@@ -50,7 +51,7 @@ export default function TimelineVisualization({ hook, risks }) {
 
       {/* Labels */}
       <div className="absolute top-8 left-0 text-[10px] text-[#666] font-mono">00:00</div>
-      <div className="absolute top-8 right-0 text-[10px] text-[#666] font-mono">10:00</div>
+      <div className="absolute top-8 right-0 text-[10px] text-[#666] font-mono">{formatTime(VIDEO_LENGTH_SECONDS)}</div>
     </div>
   );
 }
