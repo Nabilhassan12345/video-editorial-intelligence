@@ -33,10 +33,11 @@ _NUM = re.compile(r"-?\d+(?:\.\d+)?")
 
 
 def parse_svg_retention_path(path_str: str, num_points: int = 60) -> Optional[list]:
-    """Parse a `retentionCurve` SVG path into a normalized [0,100] curve.
+    """Parse a `retentionCurve` SVG path into a [0,100] curve.
 
-    The path is a sequence of commands (M/L/C) with x/y coordinates; y grows
-    downward in SVG space, so we invert it. Returns None when unparseable.
+    The path's y coordinates ARE the audience-retention percentage directly
+    (e.g. "M 0.0,100.0 C ..." starts at 100% retained at second 0); x is seconds.
+    Returns None when unparseable.
     """
     if not path_str or not isinstance(path_str, str):
         return None
@@ -47,15 +48,12 @@ def parse_svg_retention_path(path_str: str, num_points: int = 60) -> Optional[li
         return None
     xs = np.array([p[0] for p in pairs])
     ys = np.array([p[1] for p in pairs])
-    y_min, y_max = ys.min(), ys.max()
-    if y_max - y_min == 0:
-        return None
-    ys = 100.0 * (y_max - ys) / (y_max - y_min)  # invert: top of plot = 100%
     # resample to num_points evenly spaced points
     xi = np.linspace(xs.min(), xs.max(), num_points)
     yi = np.interp(xi, xs, ys)
-    yi[0] = 100.0
-    return [float(max(0.0, min(100.0, v))) for v in yi]
+    yi = np.clip(yi, 0.0, 100.0)
+    yi[0] = max(yi[0], 99.0) if yi[0] > 50 else yi[0]
+    return [float(v) for v in yi]
 
 
 def collect_vretention(csv_path: str, limit: int = 10000) -> Iterator[Dict]:

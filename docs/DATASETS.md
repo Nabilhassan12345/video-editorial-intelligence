@@ -9,7 +9,8 @@ exact per-sample schema `src/train.py --dataset-path` consumes.
 | Source | Size | What's real | Access |
 |---|---|---|---|
 | [TikTok Creative Center Top Ads](https://huggingface.co/datasets/liangyuch/ttcc-v0_2_0) (`ttcc`) | 61,789 ads | Per-second (1 Hz) **retention curves**, CTR percentiles, likes/comments/shares, embedded mp4 + audio | Public on Hugging Face. **Research-use only** — do not redistribute or use commercially. |
-| [vRetention](https://github.com/flowtele/vRetention) (`vretention`) | thousands of videos | Real YouTube & Bilibili audience-retention curves | Academic dataset; download `youtube.csv` yourself. **Research-use only.** |
+| [vRetention](https://github.com/flowtele/vRetention) (`vretention`) | thousands of videos | Real YouTube & Bilibili audience-retention curves | Academic dataset; download `youtube.csv` yourself (it's a Git-LFS file — `git lfs pull` or the media.githubusercontent.com URL). **Research-use only.** |
+| vRetention + YouTube captions (`youtube`) | bounded by how many IDs you fetch | Same retention curves **plus real transcripts** fetched with yt-dlp (the mechanism Agent-Reach wraps); optional audio download for acoustic features | Public captions; keep `--sleep` ≥ 0.3 and modest limits. |
 
 Labels are **derived from measured viewer retention**, not generated:
 
@@ -41,6 +42,11 @@ train/test features match what the pipeline produces at runtime.
 #   git clone https://github.com/flowtele/vRetention
 .venv/bin/python -m src.data.real.collect --source vretention \
     --csv-path vRetention/dataset/youtube.csv --limit 5000 --out data/real/vret.jsonl
+
+# Same curves + real transcripts fetched per video ID (slow — one yt-dlp call each):
+.venv/bin/python -m src.data.real.collect --source youtube \
+    --csv-path vRetention/dataset/youtube.csv --limit 200 --out data/real/yt.jsonl
+# add --no-audio to skip audio downloads (transcripts only)
 ```
 
 `data/real/` is git-ignored on purpose: the licenses allow research use, not

@@ -41,9 +41,9 @@ def test_quality_percentile_mapping():
     assert quality_from_percentile(None) == 5.0
 
 
-def test_parse_svg_retention_path_inverts_y_axis():
-    # Simple path: x from 0-600, y from 0 (top = 100% retained) to 300 (bottom = 0%)
-    path = "M 0 0 L 300 150 L 600 300"
+def test_parse_svg_retention_path_uses_y_as_retention_pct():
+    # Real vRetention format: y is the retention % directly, 100 at second 0.
+    path = "M 0.0,100.0 C 1.0,80.9 2.0,13.3 5.0,4.5 L 10.0,3.0"
     curve = parse_svg_retention_path(path, num_points=10)
     assert curve is not None
     assert curve[0] == 100.0

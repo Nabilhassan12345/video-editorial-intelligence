@@ -34,6 +34,15 @@ def _iter_source(args):
             ),
             {"dataset": DATASET_ID, "license": LICENSE_NOTE},
         )
+    if args.source == "youtube":
+        if not args.csv_path:
+            raise SystemExit("--csv-path is required for source=youtube (vRetention youtube.csv)")
+        from src.data.real.youtube import LICENSE_NOTE, collect_youtube
+        return (
+            collect_youtube(args.csv_path, limit=args.limit,
+                            audio=not args.no_audio, sleep=args.sleep),
+            {"dataset": "vRetention curves + YouTube captions (yt-dlp)", "license": LICENSE_NOTE},
+        )
     if args.source == "vretention":
         if not args.csv_path:
             raise SystemExit("--csv-path is required for source=vretention")
@@ -47,7 +56,7 @@ def _iter_source(args):
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="collect-real-data", description=__doc__)
-    p.add_argument("--source", choices=["ttcc", "vretention"], required=True)
+    p.add_argument("--source", choices=["ttcc", "vretention", "youtube"], required=True)
     p.add_argument("--limit", type=int, default=1000)
     p.add_argument("--out", type=str, required=True)
     p.add_argument("--csv-path", type=str, default=None,
@@ -57,6 +66,8 @@ def main(argv=None):
     p.add_argument("--no-audio", action="store_true",
                    help="ttcc: skip FFmpeg audio features")
     p.add_argument("--whisper-model", type=str, default="tiny")
+    p.add_argument("--sleep", type=float, default=1.0,
+                   help="youtube: seconds to wait between caption requests")
     p.add_argument("--seed", type=int, default=42)
     args = p.parse_args(argv)
 
