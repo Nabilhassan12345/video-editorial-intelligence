@@ -88,7 +88,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["70-Sample\nCurated Dataset"] --> B["Train/Val Split\n(80/20, seed=42)"]
+    A["Real Retention Curves\n(TTCC 61,789 ads / synthetic fallback)"] --> B["Group-aware Stratified Split\n(seed=42)"]
     B --> C["Tokenizer\ndistilbert-base-uncased"]
     C --> D["Frozen DistilBERT\nBackbone"]
     D --> E["PEFT LoRA Adapters\nrank=16, alpha=32\ntarget: q_lin, v_lin"]
@@ -194,7 +194,7 @@ Full methodology: [docs/EVALUATION.md](docs/EVALUATION.md).
 | Backbone | `distilbert-base-uncased` |
 | Fine-tuning method | PEFT LoRA |
 | Epochs | 5 (`--epochs 5`) |
-| Training dataset | 42 synthetic samples (6 templates) after group split |
+| Training dataset | Real labeled: TTCC ads w/ measured retention curves (see docs/DATASETS.md); synthetic fallback: 42 samples |
 | Trainable parameters | 446,211 / 66,809,091 (0.67%) |
 | Best validation loss | 1.1412 |
 
@@ -496,7 +496,7 @@ video intelligence/
 > [!CAUTION]
 > Please read these limitations carefully before drawing conclusions from the evaluation results.
 
-1. **Small training dataset (70 samples):** The model was fine-tuned on a 70-sample curated synthetic dataset. This is orders of magnitude smaller than what production editorial AI systems require. Performance may not generalise to real-world video content.
+1. **The default checkpoint was trained on 70 synthetic samples; a real-data path now exists:** The default checkpoint was fine-tuned on a 70-sample curated synthetic dataset. A real-data path now exists — see [`docs/DATASETS.md`](docs/DATASETS.md): adapters for the TikTok Creative Center corpus (61,789 ads with measured per-second retention curves) and the vRetention YouTube/Bilibili curves dataset. Both are research-use licensed; collect them locally (they are not redistributed).
 
 2. **Synthetic/curated benchmark:** Evaluation labels (hook, drop-off, quality) were synthetically generated or manually curated, not derived from real viewer retention telemetry (e.g., YouTube Analytics). The benchmark measures fit to the curated dataset, not real-world editorial effectiveness.
 
@@ -515,7 +515,8 @@ video intelligence/
 ## Roadmap
 
 - [ ] **Real retention data integration** — Connect to YouTube Analytics API for ground-truth viewer retention labels
-- [ ] **Larger dataset** — Scale curated dataset to 1,000+ samples with human-verified editorial labels
+- [x] **Real retention-labeled data** — TikTok Creative Center (61,789 ads) + vRetention YouTube curves adapters ([`docs/DATASETS.md`](docs/DATASETS.md))
+- [ ] **Full-scale training run** — Train on the complete corpus on GPU (Azure ML job spec ready, dry-run only)
 - [ ] **Threshold calibration** — Calibrate the hook / drop-off decision thresholds on a real validation set
 - [ ] **Multimodal features** — Integrate acoustic features (RMS energy, speaking rate, silence gaps) end-to-end
 - [ ] **Visual frame analysis** — Add CNN/ViT-based visual engagement signal extraction

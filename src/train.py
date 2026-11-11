@@ -62,8 +62,17 @@ def split_dataset(
     """
     test_ratio = max(0.0, 1.0 - train_ratio - val_ratio)
     groups: Dict[str, List[Dict]] = {}
+    text_to_group: Dict[str, str] = {}
     for item in data:
-        groups.setdefault(_group_key(item), []).append(item)
+        key = _group_key(item)
+        text = str(item.get("text", ""))
+        # Items from different groups (e.g. different ads) that share identical
+        # text must still land in one split — merge them under the first group seen.
+        if text and text in text_to_group:
+            key = text_to_group[text]
+        elif text:
+            text_to_group[text] = key
+        groups.setdefault(key, []).append(item)
 
     strata: Dict[str, List[str]] = {}
     for key in sorted(groups):
@@ -224,8 +233,12 @@ def run_training(
     # 1. Load Data
     if dataset_path and Path(dataset_path).exists():
         logger.info(f"Loading custom dataset from {dataset_path}")
-        with open(dataset_path, "r") as f:
-            raw_data = json.load(f)
+        if str(dataset_path).endswith(".jsonl"):
+            with open(dataset_path, "r") as f:
+                raw_data = [json.loads(line) for line in f if line.strip()]
+        else:
+            with open(dataset_path, "r") as f:
+                raw_data = json.load(f)
     else:
         logger.info("Using curated multi-segment video editorial dataset.")
         raw_data = generate_curated_editorial_dataset(num_samples=70, seed=train_config.seed)

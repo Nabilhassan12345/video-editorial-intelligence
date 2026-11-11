@@ -18,7 +18,7 @@ The Node server now calls the Python pipeline first and falls back to the origin
 
 ## What is not
 
-- No real viewer-retention data; all reported metrics are on a synthetic template benchmark (see [EVALUATION.md](EVALUATION.md)).
+- The default checkpoint's reported metrics are on a synthetic template benchmark (see [EVALUATION.md](EVALUATION.md)). Real labeled data IS obtainable now via `src/data/real/collect.py` (TikTok Creative Center retention curves + vRetention YouTube curves — see [DATASETS.md](DATASETS.md)); a full-scale training run on it has not been executed yet.
 - No Azure ML job, registration, deployment or Foundry call has been executed from this repository.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [DATA_PIPELINE.md](DATA_PIPELINE.md), [FINE_TUNING.md](FINE_TUNING.md), [AZURE_MACHINE_LEARNING.md](AZURE_MACHINE_LEARNING.md), [AZURE_AI_FOUNDRY.md](AZURE_AI_FOUNDRY.md), [DEPLOYMENT.md](DEPLOYMENT.md).

@@ -20,6 +20,9 @@ htmlcov/
 
 # Model checkpoints and large outputs
 checkpoints/
+
+# Collected real datasets (license: research-use only, do not redistribute)
+data/real/
 runs/
 outputs/
 *.pt

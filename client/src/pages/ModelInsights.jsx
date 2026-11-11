@@ -67,7 +67,7 @@ export default function ModelInsights() {
             <SpecItem label="Base Model" value="distilbert-base-uncased" />
             <SpecItem label="Fine-tuning Method" value="PEFT LoRA (q_lin, v_lin)" />
             <SpecItem label="Prediction Heads" value="Hook / Drop-off / Quality" />
-            <SpecItem label="Training Dataset" value="70 synthetic samples (10 templates)" />
+            <SpecItem label="Training Dataset" value="TTCC ads w/ real retention curves (+70 synthetic)" />
             <SpecItem label="Inference" value="PyTorch on CPU" />
           </ul>
         </motion.div>
@@ -76,18 +76,18 @@ export default function ModelInsights() {
         <motion.div variants={itemVariants} className="premium-panel p-6">
           <h2 className="text-lg font-semibold mb-6 flex items-center space-x-2 border-b border-[#222] pb-4">
             <GitCommit className="w-5 h-5 text-gray-400" />
-            <span>Synthetic Held-out Test (3 templates, 21 samples)</span>
+            <span>Held-out Real Ads Test (216 TikTok ads, measured retention labels)</span>
           </h2>
           <div className="space-y-6">
-            <MetricBar label="Hook F1" value="0.00" isText />
-            <MetricBar label="Drop-off ROC-AUC" value="1.00" isText />
-            <MetricBar label="Quality RMSE (1-10 scale)" value="1.74" isText />
-            <MetricBar label="Quality Pearson r" value="0.93" isText />
-            <MetricBar label="CPU Latency" value="~17 ms / segment" isText />
+            <MetricBar label="Drop-off ROC-AUC" value="0.73" isText />
+            <MetricBar label="Drop-off PR-AUC" value="0.91" isText />
+            <MetricBar label="Hook ROC-AUC (F1 0.00, uncalibrated)" value="0.64" isText />
+            <MetricBar label="Quality RMSE (Pearson r ≈ 0)" value="0.92" isText />
+            <MetricBar label="CPU Latency" value="~43 ms / segment" isText />
           </div>
           <p className="text-[11px] text-[#666] mt-6 leading-relaxed">
-            Sanity check on a tiny generated dataset (see docs/EVALUATION.md). These numbers are not
-            evidence of real editorial quality or viewer-retention prediction.
+            1,500 ads collected via src/data/real (see docs/DATASETS.md + docs/EVALUATION.md). Real
+            drop-off learning; hook/quality heads honest early results, not production-grade.
           </p>
         </motion.div>
       </div>

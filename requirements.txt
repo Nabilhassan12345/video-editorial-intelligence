@@ -25,3 +25,7 @@ tqdm>=4.66.0
 pytest>=8.0.0
 pytest-cov>=4.0.0
 
+
+# Real-dataset collection (src/data/real/)
+datasets>=3.0
+# Optional: whisper transcription for collected videos (pip install openai-whisper; ~1GB with torch already present)

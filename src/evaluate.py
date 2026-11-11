@@ -293,8 +293,12 @@ def main():
 
     # 1. Dataset
     if args.dataset_path and Path(args.dataset_path).exists():
-        with open(args.dataset_path, "r") as f:
-            full_data = json.load(f)
+        if str(args.dataset_path).endswith(".jsonl"):
+            with open(args.dataset_path, "r") as f:
+                full_data = [json.loads(line) for line in f if line.strip()]
+        else:
+            with open(args.dataset_path, "r") as f:
+                full_data = json.load(f)
     else:
         full_data = generate_curated_editorial_dataset(num_samples=70, seed=args.seed)
     is_synthetic = not (args.dataset_path and Path(args.dataset_path).exists())

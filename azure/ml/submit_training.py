@@ -52,6 +52,7 @@ def submit_training_job(
     epochs: int = 3,
     batch_size: int = 8,
     lr: float = 2e-4,
+    dataset_path: Optional[str] = None,
     experiment_name: str = "video-editorial-fine-tuning",
     dry_run: bool = True,
 ):
@@ -80,12 +81,14 @@ def submit_training_job(
             "--batch-size ${{inputs.batch_size}} "
             "--lr ${{inputs.learning_rate}} "
             "--device cuda"
+            + (" --dataset-path ${{inputs.dataset}}" if dataset_path else "")
         ),
         inputs={
             "base_model": base_model,
             "epochs": epochs,
             "batch_size": batch_size,
             "learning_rate": lr,
+            **({"dataset": Input(type=AssetTypes.URI_FILE, path=dataset_path)} if dataset_path else {}),
         },
         outputs={
             "model_output": Output(type=AssetTypes.CUSTOM_MODEL),
@@ -106,6 +109,7 @@ def submit_training_job(
     print(f"Environment:      {job.environment}")
     print(f"Code Root:        {job.code}")
     print(f"Base Model:       {base_model}")
+    print(f"Dataset:          {dataset_path or 'bundled synthetic (70 samples)'}")
     print(f"Epochs:           {epochs} | Batch Size: {batch_size} | LR: {lr}")
     print("=" * 65)
 
@@ -128,6 +132,9 @@ def main():
     parser.add_argument("--epochs", type=int, default=3, help="Training epochs")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
     parser.add_argument("--lr", type=float, default=2e-4, help="Learning rate")
+    parser.add_argument("--dataset-path", type=str, default=None,
+                        help="Local JSONL dataset to upload and train on (e.g. data/real/ttcc_train.jsonl "
+                             "produced by `python -m src.data.real.collect --source ttcc`). Omit for the bundled synthetic set.")
     parser.add_argument("--submit", action="store_true", help="Submit job to Azure ML (defaults to dry-run preview)")
     args = parser.parse_args()
 
@@ -138,6 +145,7 @@ def main():
         epochs=args.epochs,
         batch_size=args.batch_size,
         lr=args.lr,
+        dataset_path=args.dataset_path,
         dry_run=not args.submit,
     )
 
