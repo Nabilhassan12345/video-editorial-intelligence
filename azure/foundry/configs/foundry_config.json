@@ -1,0 +1,36 @@
+{
+  "project_connection_string": "",
+  "endpoint": "https://video-intelligence-foundry.services.ai.azure.com/models",
+  "api_version": "2024-05-01-preview",
+  "default_model": "mistral-large-2407",
+  "supported_catalog_models": [
+    {
+      "model_id": "mistral-large-2407",
+      "display_name": "Mistral Large (2407)",
+      "publisher": "Mistral AI",
+      "context_window": 128000,
+      "recommended_use": "Complex editorial reasoning and narrative restructuring"
+    },
+    {
+      "model_id": "Meta-Llama-3.1-70B-Instruct",
+      "display_name": "Meta LLaMA 3.1 70B",
+      "publisher": "Meta",
+      "context_window": 128000,
+      "recommended_use": "High-throughput retention and pacing classification"
+    },
+    {
+      "model_id": "gpt-4o",
+      "display_name": "OpenAI GPT-4o",
+      "publisher": "OpenAI",
+      "context_window": 128000,
+      "recommended_use": "Multimodal editorial intelligence"
+    }
+  ],
+  "generation_params": {
+    "temperature": 0.2,
+    "max_tokens": 1200,
+    "top_p": 0.95,
+    "response_format": "json_object"
+  }
+}
+

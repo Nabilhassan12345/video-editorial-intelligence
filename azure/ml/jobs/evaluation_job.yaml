@@ -1,0 +1,29 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+
+experiment_name: video-editorial-evaluation
+display_name: model-benchmark-evaluation
+description: Quantitative evaluation and benchmarking of video editorial models
+
+code: ../../
+command: >-
+  python -m src.evaluate
+  --checkpoint-dir ${{inputs.checkpoint_dir}}
+  --base-model ${{inputs.base_model}}
+  --output-dir ${{outputs.eval_output}}
+  --device cpu
+
+environment: azureml:video-editorial-env:1
+compute: azureml:cpu-cluster-standard
+
+inputs:
+  checkpoint_dir:
+    type: uri_folder
+    path: azureml:video-editorial-transformer:1
+  base_model: "distilbert-base-uncased"
+
+outputs:
+  eval_output:
+    type: uri_folder
+    mode: rw_mount
+

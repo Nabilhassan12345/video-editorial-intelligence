@@ -1,2 +1,43 @@
+# Dependencies
 node_modules/
+.venv/
+env/
+venv/
+
+# Environment and secrets
 .env
+.env.local
+*.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Model checkpoints and large outputs
+checkpoints/
+
+# Collected real datasets (license: research-use only, do not redistribute)
+data/real/
+runs/
+outputs/
+reports/
+*.pt
+*.bin
+*.safetensors
+*.onnx
+
+# Build and temporary files
+dist/
+build/
+*.egg-info/
+.DS_Store
+Thumbs.db
+
+examples/extracted_audio/
+kaggle_build/
+kaggle_output/

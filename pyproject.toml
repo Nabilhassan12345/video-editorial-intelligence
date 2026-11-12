@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-editorial-intelligence"
+version = "1.0.0"
+description = "Applied Machine Learning & NLP intelligence layer for video pacing, retention forecasting, and editorial intelligence."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Nabil Hassan Mohamed Ali", email = "contact@example.com"}
+]
+keywords = [
+    "video-editorial-intelligence",
+    "retention-prediction",
+    "video-pacing",
+    "nlp",
+    "peft",
+    "lora",
+    "qlora",
+    "azure-ml",
+    "azure-ai-foundry",
+    "multimodal-ai"
+]
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.40.0",
+    "peft>=0.10.0",
+    "accelerate>=0.28.0",
+    "scikit-learn>=1.4.0",
+    "scipy>=1.12.0",
+    "numpy>=1.24.0",
+    "pydantic>=2.0.0",
+    "streamlit>=1.35.0",
+    "azure-ai-ml>=1.15.0",
+    "azure-identity>=1.16.0",
+    "azure-ai-inference>=1.0.0b1",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=24.0.0",
+    "ruff>=0.4.0"
+]
+
+[project.scripts]
+video-editorial = "src.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning"
+]
+

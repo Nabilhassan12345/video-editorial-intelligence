@@ -1,0 +1,198 @@
+{
+  "hook": "[00:00] \"In the next three minutes, I will show you the exact strategy that doubled our average watch duration.\"",
+  "hook_segment_index": 0,
+  "hook_confidence": 0.32,
+  "drop_off_risks": [
+    {
+      "timestamp": "[00:00]",
+      "start_time": 0.0,
+      "end_time": 12.0,
+      "risk_score": 0.4,
+      "reason": "Speaking rate stagnation",
+      "explanation": "Pacing dropped to 90.0 WPM (optimal: 140\u2013180 WPM).",
+      "evidence": {
+        "speaking_rate_wpm": 90.0,
+        "silence_ratio": 0.0,
+        "lexical_density": 0.667,
+        "filler_word_ratio": 0.0,
+        "predicted_churn_prob": 0.299
+      }
+    },
+    {
+      "timestamp": "[00:12]",
+      "start_time": 12.0,
+      "end_time": 26.0,
+      "risk_score": 0.4,
+      "reason": "Speaking rate stagnation",
+      "explanation": "Pacing dropped to 68.57142857142857 WPM (optimal: 140\u2013180 WPM).",
+      "evidence": {
+        "speaking_rate_wpm": 68.57142857142857,
+        "silence_ratio": 0.0,
+        "lexical_density": 0.812,
+        "filler_word_ratio": 0.0,
+        "predicted_churn_prob": 0.27
+      }
+    },
+    {
+      "timestamp": "[00:26]",
+      "start_time": 26.0,
+      "end_time": 44.0,
+      "risk_score": 0.655,
+      "reason": "Speaking rate stagnation, High filler word density",
+      "explanation": "Pacing dropped to 60.0 WPM (optimal: 140\u2013180 WPM). Filler density reached 16.7%, reducing narrative clarity.",
+      "evidence": {
+        "speaking_rate_wpm": 60.0,
+        "silence_ratio": 0.0,
+        "lexical_density": 0.444,
+        "filler_word_ratio": 16.7,
+        "predicted_churn_prob": 0.655
+      }
+    },
+    {
+      "timestamp": "[00:44]",
+      "start_time": 44.0,
+      "end_time": 58.0,
+      "risk_score": 0.45,
+      "reason": "Dead air / excessive silence, Speaking rate stagnation",
+      "explanation": "Acoustic analysis detected 100.0% silence gap within this window. Pacing dropped to 0.0 WPM (optimal: 140\u2013180 WPM).",
+      "evidence": {
+        "speaking_rate_wpm": 0.0,
+        "silence_ratio": 100.0,
+        "lexical_density": 0.588,
+        "filler_word_ratio": 0.0,
+        "predicted_churn_prob": 0.295
+      }
+    },
+    {
+      "timestamp": "[00:58]",
+      "start_time": 58.0,
+      "end_time": 75.0,
+      "risk_score": 0.45,
+      "reason": "Dead air / excessive silence, Speaking rate stagnation",
+      "explanation": "Acoustic analysis detected 100.0% silence gap within this window. Pacing dropped to 0.0 WPM (optimal: 140\u2013180 WPM).",
+      "evidence": {
+        "speaking_rate_wpm": 0.0,
+        "silence_ratio": 100.0,
+        "lexical_density": 0.765,
+        "filler_word_ratio": 0.0,
+        "predicted_churn_prob": 0.299
+      }
+    }
+  ],
+  "quality_score": 5.96,
+  "improvements": [
+    "Accelerate pacing at [00:00]: Condense dialogue or jump-cut pauses to raise speaking tempo closer to 150 WPM.",
+    "Accelerate pacing at [00:12]: Condense dialogue or jump-cut pauses to raise speaking tempo closer to 150 WPM.",
+    "Accelerate pacing at [00:26]: Condense dialogue or jump-cut pauses to raise speaking tempo closer to 150 WPM."
+  ],
+  "segments": [
+    {
+      "index": 0,
+      "start_time": 0.0,
+      "end_time": 12.0,
+      "start_timestamp": "[00:00]",
+      "end_timestamp": "[00:12]",
+      "text": "In the next three minutes, I will show you the exact strategy that doubled our average watch duration.",
+      "hook_score": 0.367,
+      "risk_score": 0.299,
+      "quality_score": 7.39,
+      "wpm": 90.0,
+      "silence_ratio": 0.0
+    },
+    {
+      "index": 1,
+      "start_time": 12.0,
+      "end_time": 26.0,
+      "start_timestamp": "[00:12]",
+      "end_timestamp": "[00:26]",
+      "text": "Most creators spend 80% of their time color grading and selecting music, completely ignoring structural pacing.",
+      "hook_score": 0.322,
+      "risk_score": 0.27,
+      "quality_score": 7.75,
+      "wpm": 68.6,
+      "silence_ratio": 0.0
+    },
+    {
+      "index": 2,
+      "start_time": 26.0,
+      "end_time": 44.0,
+      "start_timestamp": "[00:26]",
+      "end_timestamp": "[00:44]",
+      "text": "Um, so basically... let me find my notes here... uh, give me one second while I switch screens.",
+      "hook_score": 0.122,
+      "risk_score": 0.655,
+      "quality_score": 4.63,
+      "wpm": 60.0,
+      "silence_ratio": 0.0
+    },
+    {
+      "index": 3,
+      "start_time": 44.0,
+      "end_time": 58.0,
+      "start_timestamp": "[00:44]",
+      "end_timestamp": "[00:58]",
+      "text": "Here is the key insight: retention decay accelerates whenever you introduce dead air or delay the payoff.",
+      "hook_score": 0.272,
+      "risk_score": 0.295,
+      "quality_score": 7.42,
+      "wpm": 0.0,
+      "silence_ratio": 1.0
+    },
+    {
+      "index": 4,
+      "start_time": 58.0,
+      "end_time": 75.0,
+      "start_timestamp": "[00:58]",
+      "end_timestamp": "[01:15]",
+      "text": "Apply this three-step framework in your next cut, and watch your 30-second retention curve flatten.",
+      "hook_score": 0.295,
+      "risk_score": 0.299,
+      "quality_score": 7.6,
+      "wpm": 0.0,
+      "silence_ratio": 1.0
+    }
+  ],
+  "retention_curve": [
+    {
+      "timestamp": "[00:00]",
+      "seconds": 0.0,
+      "modeled_retention_index": 98.7
+    },
+    {
+      "timestamp": "[00:12]",
+      "seconds": 12.0,
+      "modeled_retention_index": 96.9
+    },
+    {
+      "timestamp": "[00:26]",
+      "seconds": 26.0,
+      "modeled_retention_index": 93.5
+    },
+    {
+      "timestamp": "[00:44]",
+      "seconds": 44.0,
+      "modeled_retention_index": 91.7
+    },
+    {
+      "timestamp": "[00:58]",
+      "seconds": 58.0,
+      "modeled_retention_index": 89.8
+    }
+  ],
+  "metadata": {
+    "pipeline_version": "1.0.0",
+    "model_source": "fine_tuned_checkpoint (checkpoints/editorial_model)",
+    "model_status": "fine_tuned",
+    "prediction_note": "Scores come from a checkpoint fine-tuned on the bundled synthetic template dataset; they are editorial estimates, not measured audience retention.",
+    "device": "cpu",
+    "analyzed_at": "2026-11-11 11:42:55 UTC",
+    "video_filename": "sample_video.mp4",
+    "video_size_mb": 0.89,
+    "audio_extracted": true,
+    "audio_path": "examples/extracted_audio/sample_video_16k.wav",
+    "retention_curve_note": "modeled_retention_index is a heuristic index (100 = start) accumulated from per-segment drop-off scores. It is not a measured or calibrated audience-retention percentage.",
+    "total_processing_time_sec": 0.274,
+    "segment_count": 5,
+    "total_duration_sec": 75.0
+  }
+}

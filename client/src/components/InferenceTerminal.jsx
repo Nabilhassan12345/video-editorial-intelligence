@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { Terminal, Loader2 } from 'lucide-react';
 
+// Illustrative progress steps shown while the request is in flight; they are not live server logs.
 const LOG_SEQUENCE = [
-  { text: "Initializing vLLM instance on cluster-4 (NVIDIA H100)...", delay: 200 },
-  { text: "Loading transcript into memory...", delay: 600 },
-  { text: "Tokenizing transcript... (Token count: 4,210)", delay: 800 },
-  { text: "Extracting audio heuristics & pacing data...", delay: 1200 },
-  { text: "Passing through Llama-3 QLoRA fine-tuned model...", delay: 1800 },
-  { text: "WARNING: High lexical density detected at block 3. Normalizing...", delay: 2400 },
-  { text: "Computing retention decay algorithms (Simulated audience N=10,000)...", delay: 2900 },
-  { text: "Generating deep semantic explanations for risk segments...", delay: 3500 },
-  { text: "Formatting output JSON...", delay: 4100 },
-  { text: "Inference complete. Redirecting to Results Dashboard...", delay: 4500 }
+  { text: "Submitting transcript to local Node.js API...", delay: 200 },
+  { text: "Segmenting transcript by timestamp...", delay: 700 },
+  { text: "Computing lexical & pacing features (WPM, filler ratio)...", delay: 1300 },
+  { text: "Running DistilBERT + LoRA multi-head model on CPU (if checkpoint available)...", delay: 1900 },
+  { text: "Falling back to OpenAI / mock response if the Python pipeline is unavailable...", delay: 2600 },
+  { text: "Building evidence-grounded drop-off explanations...", delay: 3300 },
+  { text: "Formatting output JSON...", delay: 4000 },
+  { text: "Waiting for server response...", delay: 4500 }
 ];
 
 export default function InferenceTerminal() {
@@ -49,14 +48,14 @@ export default function InferenceTerminal() {
         </div>
         <div className="flex items-center space-x-2 text-[#555] text-xs">
           <Terminal className="w-3 h-3" />
-          <span>vllm-worker-01 ~ bash</span>
+          <span>local pipeline (illustrative steps)</span>
         </div>
         <div className="w-16"></div> {/* Spacer */}
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto text-xs leading-relaxed text-[#00ffcc]">
         <div className="text-[#666] mb-4">
-          $ ./run_inference.sh --model llama-3-qlora --input transcript.txt
+          $ POST /analyze (transcript)
         </div>
         
         {logs.map((log, i) => (

@@ -28,7 +28,7 @@ export default function ModelInsights() {
           Model Insights
         </h1>
         <p className="text-[#888] max-w-2xl font-light">
-          A transparent look into our machine learning pipeline, backbone architecture, and fine-tuning metrics.
+          The local machine learning pipeline, backbone architecture, and its (synthetic-data) evaluation results.
         </p>
       </header>
 
@@ -64,11 +64,11 @@ export default function ModelInsights() {
             <span>Architecture Specifications</span>
           </h2>
           <ul className="space-y-4">
-            <SpecItem label="Base Model" value="Llama-3 (8B Parameter)" />
-            <SpecItem label="Fine-tuning Method" value="QLoRA (Rank 64)" />
-            <SpecItem label="Context Window" value="32,000 Tokens" />
-            <SpecItem label="Training Dataset" value="1.2M YouTube Videos (Retention Data)" />
-            <SpecItem label="Inference Engine" value="vLLM + TensorRT" />
+            <SpecItem label="Base Model" value="distilbert-base-uncased" />
+            <SpecItem label="Fine-tuning Method" value="PEFT LoRA (q_lin, v_lin)" />
+            <SpecItem label="Prediction Heads" value="Hook / Drop-off / Quality" />
+            <SpecItem label="Training Dataset" value="55,587 real samples: TTCC + vRetention + YouTube captions + TikTok hooks" />
+            <SpecItem label="Training" value="Kaggle T4 GPU, 5 epochs" />
           </ul>
         </motion.div>
 
@@ -76,14 +76,19 @@ export default function ModelInsights() {
         <motion.div variants={itemVariants} className="premium-panel p-6">
           <h2 className="text-lg font-semibold mb-6 flex items-center space-x-2 border-b border-[#222] pb-4">
             <GitCommit className="w-5 h-5 text-gray-400" />
-            <span>Performance Metrics (Validation Set)</span>
+            <span>Held-out Test (7,352 samples, group-aware split) — per-source</span>
           </h2>
           <div className="space-y-6">
-            <MetricBar label="Hook Identification Accuracy" value={92} />
-            <MetricBar label="Drop-off Prediction (F1 Score)" value={88} />
-            <MetricBar label="Quality Score Correlation (Pearson)" value={85} />
-            <MetricBar label="Inference Latency (p95)" value="1.2s" isText />
+            <MetricBar label="Drop-off ROC-AUC (TTCC / vRetention)" value="0.67 / 0.58" isText />
+            <MetricBar label="Drop-off PR-AUC (TTCC / vRetention)" value="0.84 / 0.85" isText />
+            <MetricBar label="Hook ROC-AUC (TTCC, F1 0.31)" value="0.68" isText />
+            <MetricBar label="Quality RMSE (TTCC, Pearson r 0.21)" value="0.79" isText />
+            <MetricBar label="Latency (T4 GPU / CPU)" value="~4.4 ms / ~65 ms" isText />
           </div>
+          <p className="text-[11px] text-[#666] mt-6 leading-relaxed">
+            Real measured retention curves (TTCC, vRetention) + engagement-labeled TikTok hooks; see
+            docs/DATASETS.md + docs/EVALUATION.md. Modest, real signal — a baseline to beat, not production accuracy.
+          </p>
         </motion.div>
       </div>
 

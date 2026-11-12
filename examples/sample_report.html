@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Editorial Intelligence Report</title>
+    <style>
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 32px 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 960px;
+            width: 100%;
+        }
+        .header {
+            border-bottom: 1px solid #27272a;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+        .card {
+            background: #121215;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-box {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .metric-val {
+            font-size: 2em;
+            font-weight: 800;
+            color: #38bdf8;
+            margin-top: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        th {
+            background: #18181b;
+            padding: 12px 10px;
+            text-align: left;
+            color: #a1a1aa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0 0 8px 0; font-size: 2em; color: #fafafa;">🎬 Video Editorial Intelligence Report</h1>
+            <div style="color: #71717a; font-size: 0.9em;">
+                Generated: 2026-11-11 11:42:55 UTC &bull; Model: fine_tuned_checkpoint (checkpoints/editorial_model) &bull; Analyzed Media: sample_video.mp4
+            </div>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div style="color: #a1a1aa; font-size: 0.85em; font-weight: 600;">QUALITY SCORE</div>
+                <div class="metric-val" style="color: #4ade80;">6.0<span style="font-size: 0.5em; color: #71717a;">/10</span></div>
+            </div>
+            <div class="metric-box">
+                <div style="color: #a1a1aa; font-size: 0.85em; font-weight: 600;">HOOK CONFIDENCE</div>
+                <div class="metric-val">32%</div>
+            </div>
+            <div class="metric-box">
+                <div style="color: #a1a1aa; font-size: 0.85em; font-weight: 600;">RETENTION RISKS</div>
+                <div class="metric-val" style="color: #f87171;">5</div>
+            </div>
+            <div class="metric-box">
+                <div style="color: #a1a1aa; font-size: 0.85em; font-weight: 600;">SEGMENTS</div>
+                <div class="metric-val">5</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; color: #38bdf8;">🎯 Identified Hook</h2>
+            <p style="font-size: 1.1em; color: #e4e4e7; font-style: italic; background: #18181b; padding: 16px; border-left: 4px solid #38bdf8; border-radius: 4px;">
+                [00:00] "In the next three minutes, I will show you the exact strategy that doubled our average watch duration."
+            </p>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; color: #f59e0b;">💡 Actionable Improvements</h2>
+            <ul style="padding-left: 20px;">
+                <li style='margin-bottom: 8px; color: #e4e4e7;'>Accelerate pacing at [00:00]: Condense dialogue or jump-cut pauses to raise speaking tempo closer to 150 WPM.</li><li style='margin-bottom: 8px; color: #e4e4e7;'>Accelerate pacing at [00:12]: Condense dialogue or jump-cut pauses to raise speaking tempo closer to 150 WPM.</li><li style='margin-bottom: 8px; color: #e4e4e7;'>Accelerate pacing at [00:26]: Condense dialogue or jump-cut pauses to raise speaking tempo closer to 150 WPM.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; color: #ef4444;">⚠️ Retention Drop-off Risks</h2>
+            
+            <div style="background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: #ef4444; font-size: 1.1em;">[00:00] - Speaking rate stagnation</span>
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 600;">Churn Risk: 40.0%</span>
+                </div>
+                <p style="color: #a1a1aa; margin: 8px 0; font-size: 0.95em;">Pacing dropped to 90.0 WPM (optimal: 140–180 WPM).</p>
+                <div style="font-family: monospace; color: #71717a; font-size: 0.85em;">
+                    Silence: 0.0% &bull; Speaking Rate: 90.0 WPM &bull; Lexical Density: 0.667
+                </div>
+            </div>
+            
+            <div style="background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: #ef4444; font-size: 1.1em;">[00:12] - Speaking rate stagnation</span>
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 600;">Churn Risk: 40.0%</span>
+                </div>
+                <p style="color: #a1a1aa; margin: 8px 0; font-size: 0.95em;">Pacing dropped to 68.57142857142857 WPM (optimal: 140–180 WPM).</p>
+                <div style="font-family: monospace; color: #71717a; font-size: 0.85em;">
+                    Silence: 0.0% &bull; Speaking Rate: 68.57142857142857 WPM &bull; Lexical Density: 0.812
+                </div>
+            </div>
+            
+            <div style="background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: #ef4444; font-size: 1.1em;">[00:26] - Speaking rate stagnation, High filler word density</span>
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 600;">Churn Risk: 65.5%</span>
+                </div>
+                <p style="color: #a1a1aa; margin: 8px 0; font-size: 0.95em;">Pacing dropped to 60.0 WPM (optimal: 140–180 WPM). Filler density reached 16.7%, reducing narrative clarity.</p>
+                <div style="font-family: monospace; color: #71717a; font-size: 0.85em;">
+                    Silence: 0.0% &bull; Speaking Rate: 60.0 WPM &bull; Lexical Density: 0.444
+                </div>
+            </div>
+            
+            <div style="background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: #ef4444; font-size: 1.1em;">[00:44] - Dead air / excessive silence, Speaking rate stagnation</span>
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 600;">Churn Risk: 45.0%</span>
+                </div>
+                <p style="color: #a1a1aa; margin: 8px 0; font-size: 0.95em;">Acoustic analysis detected 100.0% silence gap within this window. Pacing dropped to 0.0 WPM (optimal: 140–180 WPM).</p>
+                <div style="font-family: monospace; color: #71717a; font-size: 0.85em;">
+                    Silence: 100.0% &bull; Speaking Rate: 0.0 WPM &bull; Lexical Density: 0.588
+                </div>
+            </div>
+            
+            <div style="background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: #ef4444; font-size: 1.1em;">[00:58] - Dead air / excessive silence, Speaking rate stagnation</span>
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 600;">Churn Risk: 45.0%</span>
+                </div>
+                <p style="color: #a1a1aa; margin: 8px 0; font-size: 0.95em;">Acoustic analysis detected 100.0% silence gap within this window. Pacing dropped to 0.0 WPM (optimal: 140–180 WPM).</p>
+                <div style="font-family: monospace; color: #71717a; font-size: 0.85em;">
+                    Silence: 100.0% &bull; Speaking Rate: 0.0 WPM &bull; Lexical Density: 0.765
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; color: #fafafa;">⏱️ Segment Breakdown</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Window</th>
+                            <th>Segment Transcript</th>
+                            <th style="text-align: center;">Hook</th>
+                            <th style="text-align: center;">Risk</th>
+                            <th style="text-align: center;">WPM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+            <tr style="border-bottom: 1px solid #27272a;">
+                <td style="padding: 10px; font-family: monospace; color: #38bdf8;">[00:00] - [00:12]</td>
+                <td style="padding: 10px; color: #d4d4d8;">In the next three minutes, I will show you the exact strategy that doubled our average watch duration.</td>
+                <td style="padding: 10px; text-align: center; color: #4ade80;">0.37</td>
+                <td style="padding: 10px; text-align: center; color: #f87171;">0.30</td>
+                <td style="padding: 10px; text-align: center; color: #a1a1aa;">90.0</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #27272a;">
+                <td style="padding: 10px; font-family: monospace; color: #38bdf8;">[00:12] - [00:26]</td>
+                <td style="padding: 10px; color: #d4d4d8;">Most creators spend 80% of their time color grading and selecting music, completely ignoring structural pacing.</td>
+                <td style="padding: 10px; text-align: center; color: #4ade80;">0.32</td>
+                <td style="padding: 10px; text-align: center; color: #f87171;">0.27</td>
+                <td style="padding: 10px; text-align: center; color: #a1a1aa;">68.6</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #27272a;">
+                <td style="padding: 10px; font-family: monospace; color: #38bdf8;">[00:26] - [00:44]</td>
+                <td style="padding: 10px; color: #d4d4d8;">Um, so basically... let me find my notes here... uh, give me one second while I switch screens.</td>
+                <td style="padding: 10px; text-align: center; color: #4ade80;">0.12</td>
+                <td style="padding: 10px; text-align: center; color: #f87171;">0.66</td>
+                <td style="padding: 10px; text-align: center; color: #a1a1aa;">60.0</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #27272a;">
+                <td style="padding: 10px; font-family: monospace; color: #38bdf8;">[00:44] - [00:58]</td>
+                <td style="padding: 10px; color: #d4d4d8;">Here is the key insight: retention decay accelerates whenever you introduce dead air or delay the payoff.</td>
+                <td style="padding: 10px; text-align: center; color: #4ade80;">0.27</td>
+                <td style="padding: 10px; text-align: center; color: #f87171;">0.29</td>
+                <td style="padding: 10px; text-align: center; color: #a1a1aa;">0.0</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #27272a;">
+                <td style="padding: 10px; font-family: monospace; color: #38bdf8;">[00:58] - [01:15]</td>
+                <td style="padding: 10px; color: #d4d4d8;">Apply this three-step framework in your next cut, and watch your 30-second retention curve flatten.</td>
+                <td style="padding: 10px; text-align: center; color: #4ade80;">0.29</td>
+                <td style="padding: 10px; text-align: center; color: #f87171;">0.30</td>
+                <td style="padding: 10px; text-align: center; color: #a1a1aa;">0.0</td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
