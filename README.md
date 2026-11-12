@@ -108,7 +108,7 @@ flowchart LR
 | Dropout | 0.05 |
 | Target modules | `q_lin`, `v_lin` (DistilBERT-specific) |
 | Trainable params | 446,211 / 66,809,091 (0.67%) |
-| Epochs | 4 (`--epochs 4`, batch 32, CPU, 6,790 s) |
+| Epochs | 5 (`--epochs 5`, batch 64, Kaggle T4 GPU, 1,839 s; best epoch 4) |
 | Learning rate | 2e-5 |
 | Batch size | 8 |
 | Best val_loss | 1.4123 |
@@ -148,20 +148,20 @@ flowchart TD
 
 ## Evaluation Results
 
-Trained on **18,150 real samples from 4 public research sources**: 4,000 TikTok Creative Center ads and 2,150 YouTube/Bilibili videos with *measured* per-second audience-retention curves (150 of them paired with real YouTube captions via yt-dlp), plus 12,000 TikTok hooks with engagement stats. The split is group-aware, so no creator or video crosses train/test. Test set: 2,787 samples. Full tables, commands and caveats: [docs/EVALUATION.md](docs/EVALUATION.md). Data sources and licenses: [docs/DATASETS.md](docs/DATASETS.md).
+Trained on **55,587 real samples from 4 public research sources** on a free Kaggle T4 GPU: 16,941 TikTok Creative Center ads and 2,150 YouTube/Bilibili videos with *measured* per-second audience-retention curves (150 of them paired with real YouTube captions via yt-dlp), plus 36,496 TikTok hooks with engagement stats. The split is group-aware, so no creator, video or identical text crosses train/test. Test set: 7,352 samples. Full tables, the earlier 18,150-sample CPU run, commands and caveats: [docs/EVALUATION.md](docs/EVALUATION.md). Data sources and licenses: [docs/DATASETS.md](docs/DATASETS.md).
 
 Per-source metrics (the honest view; pooled numbers are inflated by between-source differences):
 
 | Head | Metric | TTCC (retention) | vRetention (retention) | TikTok hooks (engagement) |
 |---|---|---:|---:|---:|
-| Hook | ROC-AUC | 0.66 | n/a (98% positive) | 0.53 |
-| Hook | F1 @0.5 | 0.38 | 0.98 | 0.84 |
-| Drop-off | ROC-AUC | 0.64 | 0.62 | n/a (no curves) |
-| Drop-off | PR-AUC | 0.81 | 0.87 | n/a |
-| Quality | RMSE (1–10) | 0.99 | 1.59 | 1.53 |
-| Quality | Pearson r | 0.08 | 0.16 | 0.15 |
+| Hook | ROC-AUC | 0.68 | n/a (95% positive) | 0.51 |
+| Hook | F1 @0.5 | 0.31 | 0.96 | 0.87 |
+| Drop-off | ROC-AUC | 0.67 | 0.58 | n/a (no curves) |
+| Drop-off | PR-AUC | 0.84 | 0.85 | n/a |
+| Quality | RMSE (1–10) | 0.79 | 1.87 | 1.59 |
+| Quality | Pearson r | 0.21 | 0.19 | 0.06 |
 
-What this does and doesn't show: the drop-off and TTCC hook heads learn a real but modest signal from text + audio features. Quality *ranking* within a source is still weak. Hook virality from caption text alone is near chance. These are baseline numbers to beat, not production accuracy. The synthetic 70-sample template benchmark is kept in EVALUATION.md as a pipeline sanity check only.
+What this does and doesn't show: on TTCC ads, the drop-off, hook and quality heads learn a real but modest signal from text + audio features, and their ranking metrics improved over the 18,150-sample run (hook F1 at the 0.5 threshold did not). Hook virality from caption text alone is near chance. These are baseline numbers to beat, not production accuracy.
 
 ### Model Details
 
@@ -169,10 +169,10 @@ What this does and doesn't show: the drop-off and TTCC hook heads learn a real b
 |---|---|
 | Backbone | `distilbert-base-uncased` |
 | Fine-tuning method | PEFT LoRA |
-| Epochs | 4 (`--epochs 4`, batch 32, CPU, 6,790 s) |
-| Training dataset | 12,497 real training samples (TTCC + vRetention + YouTube captions + TikTok hooks; see docs/DATASETS.md); synthetic 70-sample fallback |
+| Epochs | 5 (`--epochs 5`, batch 64, Kaggle T4 GPU, 1,839 s; best epoch 4) |
+| Training dataset | 39,310 real training samples (TTCC + vRetention + YouTube captions + TikTok hooks; see docs/DATASETS.md); synthetic 70-sample fallback |
 | Trainable parameters | 446,211 / 66,809,091 (0.67%) |
-| Best validation loss | 0.9127 |
+| Best validation loss | 1.2618 (masked drop-off loss; not comparable to the 18k run's 0.9127) |
 
 ---
 

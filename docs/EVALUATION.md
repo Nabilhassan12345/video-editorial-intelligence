@@ -8,7 +8,47 @@
 3. Evaluate a baseline (`distilbert-base-uncased` with randomly initialised heads, no adapter) and the fine-tuned checkpoint on the test split.
 4. Metrics (`scikit-learn` / `scipy`): Hook F1 + ROC-AUC, Drop-off ROC-AUC, PR-AUC and Brier score, Quality RMSE / MAE / R² / Pearson r, CPU latency and throughput. Ranking metrics are reported as `null` / "undefined" when the test split has a single class, instead of a fake 0.5.
 
-## Results v2 (18,150 real samples, 4 sources — current)
+## Results v4 — Kaggle T4, 55,587 real samples, LoRA (current)
+
+Run on a free Kaggle T4 GPU with `kaggle/run_kaggle.py` (private kernel and private dataset, because TTCC and vRetention are research-use only). PEFT LoRA confirmed in the log: 446,211 trainable / 66,809,091 parameters (0.67%), adapter saved to `adapter/`.
+
+Corpus, exact counts from the run's `corpus_counts.json`:
+
+| Source | Samples | Hook-positive | Label type |
+|---|---:|---:|---|
+| `tiktok_hooks` (all English rows of 46,605) | 36,496 | 28,732 | engagement-derived, no retention curve |
+| `ttcc` | 16,941 | 5,979 | measured 1 Hz retention curve |
+| `vretention` | 2,000 | 1,941 | measured retention curve |
+| `youtube_vretention` | 150 | 144 | measured curve + yt-dlp transcript |
+| **Total** | **55,587** | | |
+
+TTCC: 14,020 rows collected in this run from 96 of 97 parquet files (1 file failed), merged with the private v2 corpus and de-duplicated, giving 16,941 of 61,789 ads. The row count is not exactly reproducible between runs: the frozen-encoder run below collected 14,844 rows from 93 files. Per-file worker logs are in the kernel output (`ttcc_logs/`).
+
+Group split: train 39,310 (12,556 groups), val 8,925 (2,692), test 7,352 (2,692). 5 epochs, batch 64, CUDA, 1,839 s training, best epoch 4 (val loss 1.2618). Total kernel time 6,862 s.
+
+Per-source, held-out test split (7,352 samples):
+
+| Source | n | Hook pos. rate | Hook F1 | Hook ROC-AUC | Drop-off ROC-AUC | Drop-off PR-AUC | Quality RMSE | Quality r |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tiktok_hooks | 4,470 | 0.780 | 0.8694 | 0.5110 | n/a | n/a | 1.5876 | 0.0614 |
+| ttcc | 2,583 | 0.353 | 0.3137 | **0.6841** | **0.6663** | **0.8442** | **0.7865** | **0.2120** |
+| vretention | 281 | 0.947 | 0.9631 | 0.3977 | 0.5807 | 0.8490 | 1.8657 | 0.1853 |
+| youtube_vretention | 18 | 1.000 | 1.0000 | n/a | 0.9111 | 0.9830 | 2.5238 | 0.5934 |
+| All retention-labeled | 2,882 | 0.415 | 0.5170 | 0.7515 | 0.6652 | 0.8422 | 0.9662 | 0.8649 |
+
+Pooled (not a headline, source-shortcut caveat below): hook F1 0.8023, hook ROC-AUC 0.7415, drop-off ROC-AUC 0.6466, quality RMSE 1.3779, quality r 0.6882. T4 latency 4.38 ms/segment (228.5 segments/s).
+
+Reading:
+
+- On TTCC, the only source with enough measured-retention test samples, every ranking metric improved over v2 (18,150 samples, CPU LoRA): hook ROC-AUC 0.66 → 0.68, drop-off ROC-AUC 0.64 → 0.67, PR-AUC 0.81 → 0.84, quality r 0.08 → 0.21, quality RMSE 0.99 → 0.79. Gains are modest.
+- TTCC hook F1 fell to 0.31 (v2 0.38): ranking improved but fewer probabilities cross the 0.5 threshold. Threshold tuning on the validation split would address this.
+- Hook on `tiktok_hooks` stays near chance (ROC-AUC 0.51): predicting engagement outliers from caption text alone does not work.
+- `youtube_vretention` has 18 test videos; its numbers are noise.
+- The test split differs from v2's (different corpus), so the comparison is across corpora, not a controlled ablation.
+
+Reproduce: see [kaggle/README.md](../kaggle/README.md); `python kaggle/launch.py` pushes the private kernel and fetches outputs.
+
+## Results v2 (18,150 real samples, 4 sources — CPU, previous reference)
 
 Corpus `data/real/combined_v2.jsonl` (git-ignored; rebuild with the commands in [DATASETS.md](DATASETS.md)):
 
@@ -77,6 +117,36 @@ Findings:
 - **The pooled drop-off ROC-AUC of 0.957 in v2 was a shortcut.** Once the model stops being trained on the `tiktok_hooks` zeros, the pooled number collapses to 0.516, while the within-source numbers barely move. This confirms the pooled figure must not be quoted.
 - **Masking did not improve within-source drop-off** (TTCC 0.64 → 0.61, vRetention 0.62 → 0.59, within run-to-run noise for n≈300–570). The drop from v1's 0.73 is more likely due to the mixed corpus or text-only features than to the placeholder labels.
 - **Hook F1 on TTCC improved (0.38 → 0.45)**, quality on vRetention got worse. Net: mixed. **v2 stays the reference checkpoint**; v3 is kept as an ablation.
+
+### Kaggle T4 ablation: 56,456 samples, frozen encoder (heads only)
+
+Run on a free Kaggle T4 (`kaggle/run_kaggle.py`, private kernel). Corpus, exact counts from `corpus_counts.json`:
+
+| Source | Samples | Hook-positive |
+|---|---:|---:|
+| `tiktok_hooks` (all English rows) | 36,496 | 28,732 |
+| `ttcc` | 17,810 | 6,395 |
+| `vretention` | 2,000 | 1,941 |
+| `youtube_vretention` | 150 | 144 |
+| **Total** | **56,456** | |
+
+TTCC: 14,844 rows collected in this run (93 of 97 parquet files; 4 files failed), merged with the private v2 corpus and de-duplicated, giving 17,810 of 61,789. Group split: train 38,902 (13,167 groups), val 6,861, test 10,693. 5 epochs, batch 64, 958 s training on CUDA, best epoch 5 (val loss 1.4062).
+
+⚠️ **This run is not LoRA.** PEFT injection failed on the Kaggle image (torchao 0.10 incompatible with PEFT), and `inject_peft_adapters` fell back to freezing the whole DistilBERT encoder, so only the three prediction heads were trained. The generated report labels the column "PEFT LoRA"; that label is wrong for this run. `kaggle/run_kaggle.py` now removes torchao and fails if the checkpoint has no `adapter/`.
+
+Per-source, test split (10,693 samples):
+
+| Source | n | Hook pos. rate | Hook F1 | Hook ROC-AUC | Drop-off ROC-AUC | Drop-off PR-AUC | Quality RMSE | Quality r |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tiktok_hooks | 7,736 | 0.771 | 0.8673 | 0.5185 | n/a | n/a | 1.5434 | 0.0559 |
+| ttcc | 2,623 | 0.353 | 0.3429 | 0.6309 | 0.6499 | 0.8291 | 0.9696 | 0.0783 |
+| vretention | 312 | 0.965 | 0.9804 | 0.2519 | 0.5768 | 0.8369 | 1.4262 | 0.1513 |
+| youtube_vretention | 22 | 1.000 | 1.0000 | n/a | 0.4896 | 0.7842 | 2.5755 | -0.0504 |
+| All retention-labeled | 2,957 | 0.422 | 0.5439 | 0.7211 | 0.6444 | 0.8196 | 1.0478 | 0.8501 |
+
+Pooled (not a headline, same source-shortcut caveat as above): hook F1 0.8244, hook ROC-AUC 0.6986, drop-off ROC-AUC 0.6839, quality r 0.6236. T4 latency 4.08 ms/segment (245 segments/s).
+
+Reading: with a frozen encoder and 3× the data, within-source numbers are about the same as the LoRA v2 run on 18,150 samples (TTCC drop-off ROC-AUC 0.65 vs 0.64, TTCC hook ROC-AUC 0.63 vs 0.66). Within-source quality ranking stays near zero.
 
 ## Results v1 (1,500 TTCC ads — superseded)
 

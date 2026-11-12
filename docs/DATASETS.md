@@ -76,6 +76,12 @@ redistribution.
     --dataset-path data/real/ttcc_train.jsonl --epochs 3
 ```
 
+```bash
+# Free Kaggle T4 GPU (private kernel + private dataset; collects all English TikTok hooks and TTCC
+# within a time budget, then trains + evaluates). Used for the 55,587-sample run in EVALUATION.md.
+python kaggle/launch.py
+```
+
 ## Honest limits
 
 - Retention curves are **platform-aggregated** (views across the ad's delivery
