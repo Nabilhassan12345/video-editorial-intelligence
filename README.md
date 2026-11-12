@@ -3,317 +3,123 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch">
-  <img src="https://img.shields.io/badge/🤗_Transformers-4.40+-FFD21E?style=for-the-badge" alt="Transformers">
-  <img src="https://img.shields.io/badge/PEFT_LoRA-0.10+-00B4D8?style=for-the-badge" alt="PEFT">
+  <img src="https://img.shields.io/badge/PEFT_LoRA-DistilBERT-00B4D8?style=for-the-badge" alt="PEFT LoRA">
   <img src="https://img.shields.io/badge/Azure_ML-SDK_v2-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" alt="Azure ML">
-  <img src="https://img.shields.io/badge/Streamlit-1.35+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT">
+  <img src="https://img.shields.io/badge/Azure_AI_Foundry-ready-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" alt="Azure AI Foundry">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge" alt="License Apache 2.0">
   <img src="https://github.com/Nabilhassan12345/video-editorial-intelligence/actions/workflows/ci.yml/badge.svg" alt="CI">
 </p>
 
-> An AI system for editorial analysis of video content — built as part of the **Microsoft Türkiye AI Innovators Internship Program 2026**, with a post-internship Python ML pipeline added featuring PEFT LoRA fine-tuning, Azure ML/Foundry integration, and a comprehensive evaluation suite.
+> Predict **hooks**, **viewer drop-off risk** and **editorial quality** for short-form and long-form video, from a model trained on **55,587 real samples** with *measured* audience-retention curves (TikTok, YouTube, Bilibili). Open-source data adapters, a DistilBERT + LoRA multi-head model, honest per-source evaluation, and ready-to-run **Azure Machine Learning** and **Azure AI Foundry** workflows.
+
+Built as part of the **Microsoft Türkiye AI Innovators Internship Program 2026**, with the Python ML pipeline, real-data layer and Azure tooling added after the internship (see [Development History](#development-history)).
 
 ---
 
 ## Table of Contents
 
-1. [Architecture](#architecture)
-2. [Fine-Tuning Workflow](#fine-tuning-workflow)
-3. [Azure ML Workflow](#azure-ml-workflow)
-4. [Evaluation Results](#evaluation-results)
-5. [Quick Start](#quick-start)
-6. [CLI Commands](#cli-commands)
-7. [Streamlit Demo](#streamlit-demo)
-8. [Azure ML Commands](#azure-ml-commands)
-9. [Project Structure](#project-structure)
-10. [Limitations](#limitations)
-11. [Roadmap](#roadmap)
-12. [Development History](#development-history)
-13. [Contributing](#contributing)
-14. [License](#license)
+1. [Status: what is trained vs. ready to run](#status-what-is-trained-vs-ready-to-run)
+2. [Results](#results)
+3. [Azure AI Foundry + Azure Machine Learning](#azure-ai-foundry--azure-machine-learning)
+4. [Architecture](#architecture)
+5. [Real data](#real-data)
+6. [Quick Start](#quick-start)
+7. [Train it yourself (CPU, free Kaggle GPU, or Azure ML)](#train-it-yourself)
+8. [Project Structure](#project-structure)
+9. [Limitations](#limitations)
+10. [Roadmap](#roadmap)
+11. [Development History](#development-history)
+12. [Contributing](#contributing)
+13. [License](#license)
 
 ---
 
-## Architecture
+## Status: what is trained vs. ready to run
 
-The system has two parallel paths: a **Node.js/React web UI** (built during the internship) and a **Python ML pipeline** (added post-internship). Both converge on the same editorial insights.
+### Trained (real runs, logs and metrics exist)
 
-```mermaid
-flowchart TD
-    A["🎬 Video Input (.mp4 / .mov)"]
+| Run | Hardware | Data | Training time | Status |
+|---|---|---|---|---|
+| **v4: LoRA, current model** | **Kaggle Tesla T4 GPU (free)** | **55,587 real samples** | 1,839 s (31 min), 5 epochs | ✅ trained + evaluated on 7,352 held-out samples |
+| Frozen-encoder ablation | Kaggle Tesla T4 GPU | 56,456 real samples | 958 s, 5 epochs | ✅ trained + evaluated (heads only; kept as a comparison) |
+| v2: LoRA | CPU (8 cores) | 18,150 real samples | 6,790 s, 4 epochs | ✅ trained + evaluated (previous reference) |
+| v3: masked drop-off loss | CPU | 18,150 real samples | 2,441 s, 3 epochs | ✅ trained + evaluated (ablation) |
 
-    subgraph "Python ML Pipeline (Post-Internship)"
-        A --> B["FFmpeg Audio Extraction"]
-        B --> C["Whisper / VTT Transcript"]
-        C --> D["Adaptive Segmentation\n(30-second windows)"]
-        D --> E["Feature Engineering\n(lexical density, pacing, WPM)"]
-        E --> F["VideoEditorialTransformer\n(DistilBERT + PEFT LoRA)"]
-        F --> G1["Head 1: Hook BCE"]
-        F --> G2["Head 2: Drop-off BCE"]
-        F --> G3["Head 3: Quality MSE"]
-        G1 --> H["Report Generator"]
-        G2 --> H
-        G3 --> H
-        H --> I1["JSON Report"]
-        H --> I2["Markdown Report"]
-        H --> I3["HTML Report"]
-    end
+Checkpoints are not committed: they were trained on research-use-only data. Rebuild them with the commands in [Train it yourself](#train-it-yourself).
 
-    subgraph "Node.js Web UI (Internship)"
-        A --> J["Express Backend\nserver/services/analysisPipeline.js"]
-        J -->|"Try Python pipeline first"| F
-        J -->|"Fallback if Python unavailable"| K["OpenAI GPT-4o-mini\nvia OpenAI API"]
-        K --> L["React Dashboard\n(Tailwind CSS)"]
-        H --> L
-    end
-```
+### Ready to run (code + configs verified, not yet executed against a live cloud account)
 
-### Key Components
-
-| Component | File | Role |
+| Component | What it does | Verified how |
 |---|---|---|
-| `VideoEditorialTransformer` | `src/models/transformer.py` | DistilBERT backbone + 3 prediction heads |
-| Training loop | `src/train.py` | PEFT LoRA fine-tuning with early stopping |
-| Evaluation suite | `src/evaluate.py` | ROC-AUC, Brier, RMSE, Pearson r |
-| Video pipeline | `src/pipeline/video_pipeline.py` | FFmpeg → transcript → segmentation |
-| CLI entrypoint | `src/cli.py` | `analyze`, `train`, `evaluate`, `demo` |
-| Streamlit app | `demo/app.py` | Interactive dashboard |
-| Node.js backend | `server/services/analysisPipeline.js` | GPT-4o-mini + Python fallback |
-| Azure ML submit | `azure/ml/submit_training.py` | SDK v2 cloud job submission |
-| Azure Foundry | `azure/foundry/inference.py` | Serverless frontier model inference |
+| **Azure ML workspace bootstrap** (`azure/ml/setup_workspace.py`) | Workspace, scale-to-zero T4 GPU cluster, CPU fallback cluster, environment | dry-run + unit tests |
+| **Azure ML training / evaluation jobs** (`azure/ml/submit_training.py`, `submit_evaluation.py`) | SDK v2 command jobs on T4 GPU (or CPU), MLflow metrics, log streaming | dry-run + unit tests |
+| **Azure ML model registry + managed online endpoint** (`register_model.py`, `deploy_model.py`) | Register checkpoint, deploy, **delete** endpoint | dry-run + unit tests |
+| **Azure AI Foundry** (`azure/foundry/`) | Editorial critique and model comparison with Foundry-hosted models (Mistral / Llama / GPT-4o) via `azure-ai-inference` | offline simulation mode (responses flagged `simulated: true`) |
 
----
+### Runs locally today
 
-## Fine-Tuning Workflow
-
-```mermaid
-flowchart LR
-    A["Real Retention Curves\n(TTCC 61,789 ads / synthetic fallback)"] --> B["Group-aware Stratified Split\n(seed=42)"]
-    B --> C["Tokenizer\ndistilbert-base-uncased"]
-    C --> D["Frozen DistilBERT\nBackbone"]
-    D --> E["PEFT LoRA Adapters\nrank=16, alpha=32\ntarget: q_lin, v_lin"]
-    E --> F["3 Task Heads\nHook BCE + Drop-off BCE\n+ Quality MSE"]
-    F --> G{"Epoch Loop\n3 epochs\nlr=2e-5, bs=8"}
-    G -->|"val_loss improving"| H["Save Checkpoint\ncheckpoints/editorial_model"]
-    G -->|"done"| I["Best val_loss: 1.4123\nat epoch 3"]
-    H --> J["446,211 trainable params\n/ 66,809,091 total\n(0.67% trained)"]
-```
-
-**LoRA configuration:**
-
-| Param | Value |
+| Component | Command |
 |---|---|
-| Rank (r) | 16 |
-| Alpha | 32 |
-| Dropout | 0.05 |
-| Target modules | `q_lin`, `v_lin` (DistilBERT-specific) |
-| Trainable params | 446,211 / 66,809,091 (0.67%) |
-| Epochs | 5 (`--epochs 5`, batch 64, Kaggle T4 GPU, 1,839 s; best epoch 4) |
-| Learning rate | 2e-5 |
-| Batch size | 8 |
-| Best val_loss | 1.4123 |
+| Video / transcript analysis (FFmpeg → segments → model → JSON/MD/HTML report) | `python -m src.cli analyze --video examples/sample_video.mp4` |
+| Streamlit demo | `python -m src.cli demo` |
+| React + Node web app (OpenAI or mock mode, Python model bridge) | `npm run install:all && npm run dev` |
+| Test suites | `pytest tests` (43 tests), `npm test --prefix server` (3 tests); CI runs both plus the frontend build |
 
 ---
 
-## Azure ML Workflow
+## Results
+
+**v4 model:** DistilBERT + PEFT LoRA (446,211 trainable / 66,809,091 parameters, 0.67%), trained on a free **Kaggle Tesla T4 GPU** on **55,587 real samples**. Group-aware split (no creator, video or identical text crosses train/test): train 39,310, val 8,925, **test 7,352**.
+
+Per-source metrics on the held-out test split (the honest view; pooled numbers are inflated because the model can tell sources apart):
+
+| Head | Metric | TTCC ads (measured retention) | vRetention (measured retention) | TikTok hooks (engagement) |
+|---|---|---:|---:|---:|
+| Hook | ROC-AUC | **0.68** | n/a (95% positive) | 0.51 |
+| Hook | F1 @0.5 | 0.31 | 0.96 | 0.87 |
+| Drop-off | ROC-AUC | **0.67** | 0.58 | n/a (no curves) |
+| Drop-off | PR-AUC | **0.84** | 0.85 | n/a |
+| Quality | RMSE (1–10) | **0.79** | 1.87 | 1.59 |
+| Quality | Pearson r | **0.21** | 0.19 | 0.06 |
+
+| Inference | Latency |
+|---|---|
+| Tesla T4 GPU | 4.4 ms / segment (228 segments/s) |
+| CPU (8 cores) | ~65 ms / segment |
+
+**Scaling 18,150 → 55,587 samples (TTCC ads, LoRA both times):** hook ROC-AUC 0.66 → 0.68, drop-off ROC-AUC 0.64 → 0.67, PR-AUC 0.81 → 0.84, quality r 0.08 → 0.21, quality RMSE 0.99 → 0.79. Hook F1 at the fixed 0.5 threshold fell 0.38 → 0.31 (threshold not tuned).
+
+What this shows: a real but modest signal for drop-off, hook and quality on TikTok ads with measured retention curves, which improves with more data. Predicting engagement-outlier hooks from caption text alone is near chance. These are baseline numbers to beat, not production accuracy. Full tables, ablations and caveats: [docs/EVALUATION.md](docs/EVALUATION.md).
+
+---
+
+## Azure AI Foundry + Azure Machine Learning
+
+Bring your own Azure subscription; every command is **dry-run by default** and only creates resources or costs money with `--create`, `--submit`, `--register` or `--deploy`. None of these live commands have been executed from this repo yet.
 
 ```mermaid
 flowchart TD
-    subgraph "Local"
-        A["CLI / Python Script"] --> B["Azure ML SDK v2 Client\n(MLClient)"]
-        C["DefaultAzureCredential\nor Service Principal"] --> B
+    subgraph Local
+        A["CLI / scripts"] --> B["Azure ML SDK v2 (MLClient)"]
+        C["DefaultAzureCredential (az login)"] --> B
     end
-
-    subgraph "Azure Machine Learning Workspace"
-        B --> D["Compute Cluster\ngpu-cluster-t4 / LowPriority"]
-        B --> E["AML Environment\nvideo-editorial-env\n(Conda + Docker + FFmpeg + CUDA)"]
-        D --> F["Command Job\nPEFT LoRA Fine-Tuning"]
+    subgraph "Azure Machine Learning workspace"
+        B --> D["gpu-cluster-t4 (NC4as_T4_v3)\nor cpu-cluster-standard\nscale to 0 when idle"]
+        B --> E["Environment: video-editorial-env"]
+        D --> F["Command job: LoRA fine-tuning"]
         E --> F
-        F --> G["MLflow Experiment\nMetrics & Artifacts"]
-        F --> H["Model Registry\nvideo-editorial-transformer:v1"]
-        H --> I["Managed Online Endpoint\nvideo-editorial-endpoint"]
-        H --> J["Evaluation Job\nBenchmark Metrics"]
+        F --> G["MLflow metrics + artifacts"]
+        F --> H["Model registry"]
+        H --> I["Managed online endpoint"]
+        H --> J["Evaluation job"]
     end
-
-    subgraph "Azure AI Foundry (Optional)"
-        B --> K["Serverless Model Catalog API\nMistral Large 2407 / LLaMA 3.1 / GPT-4o"]
-        K --> L["Editorial Critique &\nNarrative Coaching"]
+    subgraph "Azure AI Foundry"
+        B --> K["Foundry model deployment\n(Mistral / Llama / GPT-4o)"]
+        K --> L["Editorial critique + model comparison"]
     end
 ```
 
-> [!NOTE]
-> All Azure scripts run in **dry-run mode by default** — no cloud resources are created or charges incurred unless `--submit` / `--deploy` / `--register` flags are explicitly passed.
-
----
-
-## Evaluation Results
-
-Trained on **55,587 real samples from 4 public research sources** on a free Kaggle T4 GPU: 16,941 TikTok Creative Center ads and 2,150 YouTube/Bilibili videos with *measured* per-second audience-retention curves (150 of them paired with real YouTube captions via yt-dlp), plus 36,496 TikTok hooks with engagement stats. The split is group-aware, so no creator, video or identical text crosses train/test. Test set: 7,352 samples. Full tables, the earlier 18,150-sample CPU run, commands and caveats: [docs/EVALUATION.md](docs/EVALUATION.md). Data sources and licenses: [docs/DATASETS.md](docs/DATASETS.md).
-
-Per-source metrics (the honest view; pooled numbers are inflated by between-source differences):
-
-| Head | Metric | TTCC (retention) | vRetention (retention) | TikTok hooks (engagement) |
-|---|---|---:|---:|---:|
-| Hook | ROC-AUC | 0.68 | n/a (95% positive) | 0.51 |
-| Hook | F1 @0.5 | 0.31 | 0.96 | 0.87 |
-| Drop-off | ROC-AUC | 0.67 | 0.58 | n/a (no curves) |
-| Drop-off | PR-AUC | 0.84 | 0.85 | n/a |
-| Quality | RMSE (1–10) | 0.79 | 1.87 | 1.59 |
-| Quality | Pearson r | 0.21 | 0.19 | 0.06 |
-
-What this does and doesn't show: on TTCC ads, the drop-off, hook and quality heads learn a real but modest signal from text + audio features, and their ranking metrics improved over the 18,150-sample run (hook F1 at the 0.5 threshold did not). Hook virality from caption text alone is near chance. These are baseline numbers to beat, not production accuracy.
-
-### Model Details
-
-| Detail | Value |
-|---|---|
-| Backbone | `distilbert-base-uncased` |
-| Fine-tuning method | PEFT LoRA |
-| Epochs | 5 (`--epochs 5`, batch 64, Kaggle T4 GPU, 1,839 s; best epoch 4) |
-| Training dataset | 39,310 real training samples (TTCC + vRetention + YouTube captions + TikTok hooks; see docs/DATASETS.md); synthetic 70-sample fallback |
-| Trainable parameters | 446,211 / 66,809,091 (0.67%) |
-| Best validation loss | 1.2618 (masked drop-off loss; not comparable to the 18k run's 0.9127) |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.12
-- FFmpeg (for audio extraction from video files)
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Ubuntu / Debian
-sudo apt-get install -y ffmpeg
-
-# Windows (Chocolatey)
-choco install ffmpeg
-```
-
-### Installation
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Nabilhassan12345/video-editorial-intelligence.git
-cd "video-editorial-intelligence"
-
-# 2. Create a Python 3.12 virtual environment
-python3.12 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# 3. Install Python dependencies
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -e ".[dev]"
-
-# 4. (Optional) Install Node.js dependencies for the web UI
-npm install
-```
-
-### Verify Installation
-
-```bash
-# Confirm Python pipeline is importable
-.venv/bin/python -c "from src.models.transformer import VideoEditorialTransformer; print('OK')"
-
-# Confirm CLI works
-.venv/bin/python -m src.cli --help
-
-# Run the 26-test suite
-.venv/bin/python -m pytest tests/ -q
-```
-
----
-
-## CLI Commands
-
-The CLI is invoked via `python -m src.cli` (or `video-editorial` after `pip install -e .`).
-
-### `analyze` — Analyze a Video or Transcript
-
-```bash
-# Analyze a video file end-to-end (FFmpeg extraction + ML inference)
-.venv/bin/python -m src.cli analyze \
-  --video examples/sample_video.mp4 \
-  --transcript examples/sample_transcript.json \
-  --output-dir outputs/reports
-
-# Analyze a raw transcript string directly
-.venv/bin/python -m src.cli analyze \
-  --transcript "[00:00] In the next 60 seconds I will show you the exact strategy top creators use. [00:15] Let me pause here and find my notes... uh, wait a second." \
-  --output-dir outputs/reports
-```
-
-### `train` — Fine-Tune the Model
-
-```bash
-# Dry-run: verify dataset loading and training loop without GPU
-.venv/bin/python -m src.train --dry-run
-
-# Full 3-epoch fine-tuning run
-.venv/bin/python -m src.train \
-  --epochs 3 \
-  --batch-size 8 \
-  --output-dir checkpoints/editorial_model
-```
-
-### `evaluate` — Benchmark Against Baseline
-
-```bash
-# Evaluate fine-tuned checkpoint vs zero-shot baseline
-.venv/bin/python -m src.evaluate \
-  --checkpoint-dir checkpoints/editorial_model
-
-# Results written to:
-#   outputs/evaluation/evaluation_summary.md
-#   outputs/evaluation/evaluation_results.json
-```
-
-### `demo` — Launch Streamlit Dashboard
-
-```bash
-streamlit run demo/app.py
-```
-
----
-
-## Streamlit Demo
-
-```bash
-streamlit run demo/app.py
-```
-
-Open **[http://localhost:8501](http://localhost:8501)** in your browser.
-
-**Demo features:**
-
-- 🎬 Video upload and real-time preview
-- 📝 Spoken transcript inspection (auto-extracted via FFmpeg)
-- 📈 Modelled audience retention progression graph
-- 🎯 Strategic editorial recommendations per segment
-- 🚨 Retention drop-off alert cards with grounded evidence
-- 📥 One-click JSON, Markdown, and HTML report downloads
-
-**Sample video for testing:**
-
-```bash
-# Use the included sample video
-.venv/bin/python -m src.cli analyze --video examples/sample_video.mp4
-```
-
----
-
-## Azure ML Commands
-
-> [!IMPORTANT]
-> All commands below run in **dry-run mode by default** and preview the job specification locally. Live submission to Azure requires valid Azure credentials (`az login` or `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_WORKSPACE_NAME` environment variables).
-
-### Run it on your own Azure subscription (≈ $1 on a T4)
-
-Everything is wired end-to-end; bring any subscription (new Azure accounts typically include free credit):
+### Azure Machine Learning: train on a T4 GPU (~$1)
 
 ```bash
 az login
@@ -323,277 +129,237 @@ export AZURE_RESOURCE_GROUP="rg-video-editorial"
 export AZURE_WORKSPACE_NAME="aml-video-editorial"
 
 # 1. Workspace + scale-to-zero T4 GPU cluster + CPU fallback cluster + environment
-.venv/bin/python -m azure.ml.setup_workspace --create
+python -m azure.ml.setup_workspace --create
 
-# 2. Build the real corpus (docs/DATASETS.md), then train on GPU and stream logs
-.venv/bin/python -m azure.ml.submit_training --dataset-path data/real/combined_v2.jsonl \
+# 2. Build the real corpus (see Real data), then train on GPU and stream logs
+python -m azure.ml.submit_training --dataset-path data/real/combined.jsonl \
     --epochs 5 --batch-size 64 --submit --stream
 #    No GPU quota yet? add: --compute cpu-cluster-standard
 
-# 3. Register the model, then (optionally) deploy and DELETE the endpoint after the demo
-.venv/bin/python -m azure.ml.register_model --checkpoint-dir checkpoints/editorial_model_v2 --register
-.venv/bin/python -m azure.ml.deploy_model --deploy
-.venv/bin/python -m azure.ml.deploy_model --delete   # endpoints bill hourly even when idle
+# 3. Evaluate, register, deploy, and DELETE the endpoint after the demo
+python -m azure.ml.submit_evaluation --submit --checkpoint-asset azureml:video-editorial-transformer:1
+python -m azure.ml.register_model --checkpoint-dir checkpoints/editorial_model_kaggle --register
+python -m azure.ml.deploy_model --deploy
+python -m azure.ml.deploy_model --delete   # endpoints bill hourly even when idle
 ```
+
+Drop the action flag (`--create`, `--submit`, `--register`, `--deploy`) from any command to preview the exact spec without touching Azure.
 
 | Resource | Size | Approx. list price* | Idle cost |
 |---|---|---|---|
-| `gpu-cluster-t4` | Standard_NC4as_T4_v3 (1× T4) | ~$0.53/h → ~$0.25 for the 18k run | $0 (scales to 0) |
+| `gpu-cluster-t4` | Standard_NC4as_T4_v3 (1× T4) | ~$0.53/h → ~$0.25–1 per run | $0 (scales to 0) |
 | `cpu-cluster-standard` | Standard_DS3_v2, low-priority | ~$0.05–0.2/h | $0 (scales to 0) |
-| Online endpoint | Standard_DS3_v2 | ~$0.3/h | **bills while it exists** — use `--delete` |
+| Online endpoint | Standard_DS3_v2 | ~$0.3/h | **bills while it exists**, use `--delete` |
 
-\*Estimates; check the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) for your region. New/free subscriptions often have 0 GPU quota: request "Standard NCASv3_T4 Family" (4 vCPUs) under Quotas → Machine Learning.
+\*Estimates, not verified quotes; check the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) for your region. New/free subscriptions often start with 0 GPU quota: request "Standard NCASv3_T4 Family" (4 vCPUs) under Quotas → Machine Learning. Azure budgets alert by default; they do not stop spending.
 
-The live runs above have not been executed from this repo yet; every command is verified in dry-run mode (`tests/test_azure_ml_configs.py`).
+Alternative to env vars: `cp azure/ml/config.json.example azure/ml/config.json`. Details: [docs/AZURE_MACHINE_LEARNING.md](docs/AZURE_MACHINE_LEARNING.md), [azure/ml/README.md](azure/ml/README.md).
 
-Manual credential setup (alternative to env vars): `cp azure/ml/config.json.example azure/ml/config.json`.
-
-### Submit Training Job
+### Azure AI Foundry: editorial critique with hosted models
 
 ```bash
-# Preview job spec (dry-run, no charges)
-.venv/bin/python -m azure.ml.submit_training
-
-# Submit live to Azure ML compute cluster (requires credentials)
-.venv/bin/python -m azure.ml.submit_training --submit --compute gpu-cluster-t4 --epochs 3
+# Configure a Foundry model deployment (endpoint + key), see docs/AZURE_AI_FOUNDRY.md
+python -m azure.foundry.inference --transcript examples/sample_transcript.json
+python -m azure.foundry.inference --model mistral-large-2407
+python -m azure.foundry.evaluation --models mistral-large-2407 Meta-Llama-3.1-70B-Instruct
 ```
 
-### Submit Evaluation Job
+Without a configured endpoint the client runs in **offline simulation mode** and flags every response `simulated: true`, so tests and demos run at zero cost. Details: [docs/AZURE_AI_FOUNDRY.md](docs/AZURE_AI_FOUNDRY.md).
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A["Video (.mp4 / .mov) or transcript"]
+    subgraph "Python ML pipeline"
+        A --> B["FFmpeg audio extraction"]
+        B --> C["Whisper / VTT transcript"]
+        C --> D["Segmentation"]
+        D --> E["Features: lexical density, pacing, WPM, audio energy"]
+        E --> F["VideoEditorialTransformer\nDistilBERT + PEFT LoRA (q_lin, v_lin)"]
+        F --> G1["Hook head (BCE)"]
+        F --> G2["Drop-off head (masked BCE)"]
+        F --> G3["Quality head (MSE)"]
+        G1 & G2 & G3 --> H["Report: JSON / Markdown / HTML"]
+    end
+    subgraph "Web app (internship)"
+        A --> J["Express backend"]
+        J -->|"Python model first"| F
+        J -->|"fallback"| K["OpenAI GPT-4o-mini or mock"]
+        K --> L["React dashboard"]
+        H --> L
+    end
+```
+
+| Component | File | Role |
+|---|---|---|
+| `VideoEditorialTransformer` | `src/models/multi_head_transformer.py` | DistilBERT backbone + 3 prediction heads |
+| LoRA injection / checkpointing | `src/models/peft_adapter.py` | PEFT adapters, save/load |
+| Training | `src/train.py` | Group-aware split, masked drop-off loss, CPU/CUDA/MPS |
+| Evaluation | `src/evaluate.py` | ROC-AUC, PR-AUC, Brier, RMSE, Pearson r, per-source breakdown, latency |
+| Real-data adapters | `src/data/real/` | TTCC, vRetention, YouTube captions, TikTok hooks → one JSONL schema |
+| Video pipeline | `src/pipeline/video_pipeline.py` | FFmpeg → transcript → segments → report |
+| CLI | `src/cli.py` | `analyze`, `train`, `evaluate`, `demo` |
+| Kaggle runner | `kaggle/` | Free T4 GPU collection + training + evaluation |
+| Azure ML | `azure/ml/` | Workspace, jobs, registry, endpoint |
+| Azure AI Foundry | `azure/foundry/` | Hosted-model critique + comparison |
+| Web app | `server/`, `client/` | Express API + React dashboard |
+
+LoRA configuration: r = 8, alpha = 16, dropout 0.05, target modules `q_lin`, `v_lin`, learning rate 2e-4.
+
+---
+
+## Real data
+
+Viewer-retention data is normally private to each channel owner. This repo turns public research datasets into labeled training examples with one schema and provenance on every row:
+
+| Source | Platform | Used in v4 | Available | Labels |
+|---|---|---:|---:|---|
+| TikTok Creative Center (`liangyuch/ttcc-v0_2_0`) | TikTok ads | 16,941 | 61,789 | **measured** 1 Hz retention curve |
+| vRetention (`flowtele/vRetention`) | YouTube / Bilibili | 2,000 | see DATASETS.md | **measured** retention curve |
+| vRetention + yt-dlp captions | YouTube | 150 | – | measured curve + real transcript |
+| TikTok hooks (`benxh/tiktok-hooks-finetune`) | TikTok | 36,496 (all English) | 46,605 | engagement-derived (views ≥ 2× account median) |
+| **Total** | | **55,587** | | |
+
+Labels: hook = ≥ 20% of viewers retained at 3 s; drop-off risk = largest single-second relative audience loss; quality = retention-curve AUC mapped to 1–10. TikTok-hooks rows have no curve, so they are masked out of the drop-off loss and reported as `n/a`, never as true negatives.
+
+TTCC and vRetention are **research-use only**: the repo ships adapters, not data. Sources, licenses and commands: [docs/DATASETS.md](docs/DATASETS.md).
+
+---
+
+## Quick Start
 
 ```bash
-# Preview (dry-run)
-.venv/bin/python -m azure.ml.submit_evaluation
+git clone https://github.com/Nabilhassan12345/video-editorial-intelligence.git
+cd video-editorial-intelligence
+python3 -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"                                # Python 3.10+; FFmpeg on PATH for video input
 
-# Submit live
-.venv/bin/python -m azure.ml.submit_evaluation --submit --checkpoint-asset azureml:video-editorial-transformer:1
+pytest tests -q                                        # 43 tests
+python -m src.cli analyze --video examples/sample_video.mp4 --output-dir outputs/reports
+python -m src.cli demo                                 # Streamlit UI at http://localhost:8501
+
+npm run install:all && npm run dev                     # optional React + Node web app
 ```
 
-### Register Model Asset
+FFmpeg: `brew install ffmpeg` (macOS), `sudo apt-get install -y ffmpeg` (Ubuntu), `choco install ffmpeg` (Windows).
+
+---
+
+## Train it yourself
 
 ```bash
-# Preview registration payload (dry-run)
-.venv/bin/python -m azure.ml.register_model --checkpoint-dir checkpoints/editorial_model
+# 1. Collect real data (see docs/DATASETS.md for every source and option)
+python -m src.data.real.collect --source tiktok-hooks --limit 46605 --lang en --out data/real/hooks.jsonl
+python -m src.data.real.collect --source ttcc --limit 5000 --out data/real/ttcc.jsonl
+python -m src.data.real.collect --source vretention --limit 2000 --out data/real/vretention.jsonl
+cat data/real/*.jsonl > data/real/combined.jsonl
 
-# Register into Azure ML Model Registry
-.venv/bin/python -m azure.ml.register_model --checkpoint-dir checkpoints/editorial_model --register
+# 2a. Local (CPU works; ~2 h for 18k samples)
+python -m src.train --dataset-path data/real/combined.jsonl --epochs 4 --batch-size 32 \
+    --output-dir checkpoints/editorial_model
+
+# 2b. Free Kaggle T4 GPU (private kernel + private dataset): collects, trains and evaluates
+python kaggle/launch.py          # see kaggle/README.md
+
+# 2c. Azure ML T4 GPU: see the Azure section above
+
+# 3. Evaluate on the same group-aware split
+python -m src.evaluate --checkpoint-dir checkpoints/editorial_model \
+    --dataset-path data/real/combined.jsonl --output-dir reports/eval
 ```
 
-### Deploy Managed Online Endpoint
-
-```bash
-# Preview deployment config (dry-run)
-.venv/bin/python -m azure.ml.deploy_model --endpoint video-editorial-endpoint
-
-# Deploy live
-.venv/bin/python -m azure.ml.deploy_model --endpoint video-editorial-endpoint --deploy
-```
-
-### Azure AI Foundry (Serverless Inference)
-
-```bash
-# Run editorial analysis via Foundry model catalog
-.venv/bin/python -m azure.foundry.inference --transcript examples/sample_transcript.json
-
-# Specify a frontier model
-.venv/bin/python -m azure.foundry.inference --model mistral-large-2407
-
-# Benchmark multiple models
-.venv/bin/python -m azure.foundry.evaluation --models mistral-large-2407 Meta-Llama-3.1-70B-Instruct
-```
-
-> [!NOTE]
-> If Azure credentials are not configured, the Foundry client automatically falls back to **offline simulation mode**, allowing all tests and local steps to run at zero cost.
+`python -m src.train --dry-run` checks the training loop in seconds; without `--dataset-path` training falls back to a 70-sample synthetic sanity set.
 
 ---
 
 ## Project Structure
 
 ```text
-video intelligence/
-├── README.md                        # This file
-├── pyproject.toml                   # Project metadata & dependencies
-├── requirements.txt                 # Pinned dependency list
-├── .github/
-│   └── workflows/
-│       └── ci.yml                   # CI workflow (26-test suite)
-│
-├── src/                             # Python ML pipeline (post-internship)
-│   ├── cli.py                       # CLI entrypoint: analyze/train/evaluate/demo
-│   ├── train.py                     # PEFT LoRA fine-tuning loop
-│   ├── evaluate.py                  # Benchmark evaluation suite
-│   ├── models/
-│   │   ├── transformer.py           # VideoEditorialTransformer
-│   │   └── config.py                # Model hyperparameters
-│   ├── pipeline/
-│   │   └── video_pipeline.py        # FFmpeg → transcript → segmentation
-│   ├── data/
-│   │   └── dataset.py               # Dataset loading & splitting
-│   └── utils/
-│       └── report_generator.py      # JSON / MD / HTML report output
-│
-├── demo/
-│   └── app.py                       # Streamlit interactive dashboard
-│
-├── tests/                           # 26-test pytest suite
-│   ├── conftest.py                  # sys.path fixture
-│   ├── test_model.py
-│   ├── test_pipeline.py
-│   └── test_evaluate.py
-│
-├── examples/
-│   ├── sample_video.mp4             # Test video
-│   ├── sample_transcript.json       # Test transcript
-│   └── DEMO_GUIDE.md                # Step-by-step demo walkthrough
-│
-├── checkpoints/
-│   └── editorial_model/             # Fine-tuned model checkpoint (gitignored)
-│
-├── outputs/
-│   ├── evaluation/
-│   │   ├── evaluation_summary.md    # Benchmark results (Markdown)
-│   │   └── evaluation_results.json  # Benchmark results (JSON)
-│   └── reports/                     # Per-video analysis outputs
-│
+video-editorial-intelligence/
+├── src/
+│   ├── cli.py                    # analyze / train / evaluate / demo
+│   ├── train.py, evaluate.py     # training + evaluation
+│   ├── models/                   # multi_head_transformer.py, peft_adapter.py, config.py
+│   ├── data/                     # dataset.py, feature_engineering.py, segmenter.py
+│   │   └── real/                 # ttcc.py, vretention.py, youtube.py, tiktok_hooks.py, labels.py, collect.py
+│   ├── audio/extractor.py        # FFmpeg audio features
+│   └── pipeline/                 # video_pipeline.py, report_generator.py
+├── kaggle/                       # free-GPU runner: run_kaggle.py, launch.py
 ├── azure/
-│   ├── ml/                          # Azure ML SDK v2 integration
-│   │   ├── README.md
-│   │   ├── config.json.example
-│   │   ├── environments/            # Conda env + Dockerfile
-│   │   ├── jobs/                    # training_job.yaml, evaluation_job.yaml
-│   │   ├── components/
-│   │   ├── submit_training.py
-│   │   ├── submit_evaluation.py
-│   │   ├── register_model.py
-│   │   └── deploy_model.py
-│   └── foundry/                     # Azure AI Foundry integration
-│       ├── README.md
-│       ├── configs/
-│       ├── prompts/
-│       ├── client.py
-│       ├── inference.py
-│       └── evaluation.py
-│
-├── docs/                            # Extended documentation
-│   ├── ARCHITECTURE.md
-│   ├── FINE_TUNING.md
-│   ├── EVALUATION.md
-│   ├── AZURE_MACHINE_LEARNING.md
-│   └── REPRODUCIBILITY.md
-│
-└── server/                          # Node.js Express backend (internship)
-    ├── services/
-    │   ├── analysisPipeline.js      # GPT-4o-mini + Python fallback
-    │   └── pythonRunner.js          # Calls Python CLI via execFile
-    └── routes/
-        └── analysis.js
+│   ├── ml/                       # setup_workspace, submit_training/evaluation, register, deploy, jobs/, environments/, scoring/
+│   └── foundry/                  # client, inference, evaluation, prompts/, configs/
+├── demo/app.py                   # Streamlit dashboard
+├── server/, client/              # Express API + React/Vite dashboard
+├── tests/                        # 43 pytest tests
+├── examples/                     # sample video, transcript, reports
+└── docs/                         # ARCHITECTURE, DATASETS, DATA_PIPELINE, EVALUATION, FINE_TUNING,
+                                  # AZURE_MACHINE_LEARNING, AZURE_AI_FOUNDRY, DEPLOYMENT, REPRODUCIBILITY, PROJECT_OVERVIEW
 ```
 
 ---
 
 ## Limitations
 
-> [!CAUTION]
-> Please read these limitations carefully before drawing conclusions from the evaluation results.
-
-1. **The default checkpoint was trained on 70 synthetic samples; a real-data path now exists:** The default checkpoint was fine-tuned on a 70-sample curated synthetic dataset. A real-data path now exists — see [`docs/DATASETS.md`](docs/DATASETS.md): adapters for the TikTok Creative Center corpus (61,789 ads with measured per-second retention curves) and the vRetention YouTube/Bilibili curves dataset. Both are research-use licensed; collect them locally (they are not redistributed).
-
-2. **Synthetic/curated benchmark:** Evaluation labels (hook, drop-off, quality) were synthetically generated or manually curated, not derived from real viewer retention telemetry (e.g., YouTube Analytics). The benchmark measures fit to the curated dataset, not real-world editorial effectiveness.
-
-3. **Tiny, template-based test set:** The held-out split contains 3 distinct sentences. Ranking metrics (ROC-AUC/PR-AUC) on it are not informative; an earlier per-sample split leaked templates and reported AUC 1.0, which has been removed.
-
-4. **No real-world retention data:** The system has not been validated against actual viewer drop-off curves from any video platform. Predictions are based on textual features only.
-
-5. **Quality residuals are large:** On held-out templates the quality head still misses filler-heavy segments by ~2.9 points on a 1–10 scale.
-
-6. **Hook head is uncalibrated:** Hook F1 is 0.0 at a 0.5 threshold for both baseline and fine-tuned models; no threshold calibration has been done.
-
-7. **Audio features are optional/limited:** Full multimodal analysis (acoustic features, visual frames) is not yet implemented end-to-end; the current pipeline is primarily text-driven.
+1. **Modest accuracy.** Within-source ROC-AUC is 0.58–0.68; this is a baseline, not a production model.
+2. **Mostly text-driven.** Most TTCC ads are music-only (no speech), so the model leans on captions and simple audio features; visual features are not used yet.
+3. **Partial TTCC coverage.** v4 used 16,941 of 61,789 TTCC ads, and the number collected varies slightly between runs.
+4. **Small YouTube transcript subset.** Only 150 videos have both a real transcript and a measured curve (18 in the test split), so those numbers are noise.
+5. **Engagement ≠ retention.** TikTok-hooks labels come from view counts, not viewer retention.
+6. **No threshold calibration.** Hook F1 uses a fixed 0.5 threshold.
+7. **Cloud paths not exercised live.** Azure ML and Azure AI Foundry are verified in dry-run / simulation only.
+8. **Research-use data.** Models trained on TTCC/vRetention inherit their non-commercial terms.
 
 ---
 
 ## Roadmap
 
-- [ ] **Real retention data integration** — Connect to YouTube Analytics API for ground-truth viewer retention labels
-- [x] **Real retention-labeled data** — TikTok Creative Center (61,789 ads) + vRetention YouTube curves adapters ([`docs/DATASETS.md`](docs/DATASETS.md))
-- [ ] **Full-scale training run** — Train on the complete corpus on GPU (Azure ML job spec ready, dry-run only)
-- [ ] **Threshold calibration** — Calibrate the hook / drop-off decision thresholds on a real validation set
-- [ ] **Multimodal features** — Integrate acoustic features (RMS energy, speaking rate, silence gaps) end-to-end
-- [ ] **Visual frame analysis** — Add CNN/ViT-based visual engagement signal extraction
-- [ ] **RLHF loop** — Reinforcement learning from human editorial feedback for quality score refinement
-- [ ] **NLE plugin** — Lightweight inference plugin for DaVinci Resolve / Premiere Pro
-- [ ] **Creator personalisation** — Dynamic LoRA adapter swapping per creator style fingerprint
-- [ ] **REST API** — FastAPI inference server for production deployment
+- [x] Real retention-labeled data adapters (TTCC, vRetention, YouTube captions, TikTok hooks)
+- [x] GPU training on 55k+ real samples (free Kaggle T4)
+- [x] Azure ML + Azure AI Foundry workflows (dry-run verified)
+- [ ] Live Azure ML training job + Foundry endpoint run
+- [ ] Full 61,789-ad TTCC corpus
+- [ ] Threshold calibration on the validation split
+- [ ] Visual features (frame embeddings) and per-segment labels
+- [ ] EnTube (YouTube engagement) adapter
+- [ ] FastAPI inference server; UGC hook-testing workflow for creators and agencies
+- [ ] YouTube Analytics API connector for creators' own retention data
 
 ---
 
 ## Development History
 
-### Developed during Microsoft Türkiye AI Innovators Internship — Summer 2026
+### Microsoft Türkiye AI Innovators Internship, Summer 2026
 
-The initial system was built as part of the **Microsoft Türkiye AI Innovators Internship Program 2026** (commits starting July 27, 2026). The internship deliverable consisted of:
+The initial system was built during the **Microsoft Türkiye AI Innovators Internship Program 2026** (commits from July 27, 2026):
 
-- **Node.js / React SaaS web UI** — Full editorial intelligence dashboard with video upload, real-time transcript inspection, retention graph visualisation, and editorial recommendation cards
-- **Express.js backend** (`server/`) — RESTful API with `analysisPipeline.js` routing and structured JSON response schema
-- **OpenAI GPT-4o-mini integration** — LLM-powered editorial critique, hook identification, and drop-off risk analysis via the OpenAI API
-- **React frontend** — Tailwind CSS dashboard with one-click JSON/MD/HTML report downloads
+- Node.js / Express backend (`server/`) with transcript segmentation and a structured JSON schema
+- OpenAI GPT-4o-mini editorial analysis (with mock mode)
+- React + Tailwind dashboard with history and report views
 
-### Post-Internship Improvements — November 2026
+### After the internship, November 2026
 
-After the internship concluded, the following components were independently developed and added to the repository:
-
-- **Python ML pipeline** (`src/`) — End-to-end pipeline: FFmpeg audio extraction → transcript segmentation → feature engineering → inference
-- **`VideoEditorialTransformer`** — Custom multi-head transformer built on `distilbert-base-uncased` with 3 prediction heads (hook BCE, drop-off BCE, quality MSE)
-- **PEFT LoRA fine-tuning** — Parameter-efficient fine-tuning (0.67% trainable params) using Hugging Face `peft`, targeting `q_lin`/`v_lin` modules in DistilBERT
-- **Azure ML SDK v2 integration** (`azure/ml/`) — Cloud training job submission, MLflow experiment tracking, model registry, and managed online endpoint deployment
-- **Azure AI Foundry integration** (`azure/foundry/`) — Optional client for a chat-completion model you deploy in Foundry (e.g. Mistral / Llama / GPT-4o), with a clearly flagged offline simulation when no endpoint is configured; not yet run against a live endpoint. Uses the `azure-ai-inference` SDK
-- **Streamlit demo** (`demo/app.py`) — Interactive dashboard for local end-to-end demonstrations
-- **Evaluation suite** (`src/evaluate.py`) — Rigorous ROC-AUC, Brier Score, RMSE, Pearson r, and latency benchmarking
-- **26-test pytest suite** (`tests/`) — Comprehensive unit and integration tests
-- **GitHub Actions CI workflow** (`.github/workflows/ci.yml`) — Automated testing on push/PR
-- **Extended documentation** (`docs/`) — Architecture, fine-tuning, evaluation, Azure ML, and reproducibility guides
+- Python ML pipeline (`src/`): FFmpeg features, segmentation, DistilBERT + LoRA multi-head model, reports
+- Real-data layer (`src/data/real/`) and group-aware, leakage-checked evaluation
+- GPU training on a free Kaggle T4 (`kaggle/`)
+- Azure Machine Learning (`azure/ml/`) and Azure AI Foundry (`azure/foundry/`) tooling
+- Streamlit demo, Node ↔ Python bridge, CI, and documentation
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+1. Fork and create a branch: `git checkout -b feature/my-feature`
+2. `pip install -e ".[dev]"`
+3. `pytest tests -q` and `npm test --prefix server`
+4. Open a pull request against `master`
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Install development dependencies: `.venv/bin/python -m pip install -e ".[dev]"`
-4. Run the test suite: `.venv/bin/python -m pytest tests/ -q`
-5. Lint and format: `.venv/bin/python -m ruff check src/ && .venv/bin/python -m black src/`
-6. Commit your changes with a clear message
-7. Open a Pull Request against `main`
-
-Please ensure `pytest tests` and `npm test --prefix server` pass and no new linting errors are introduced before submitting a PR.
+Good first contributions: new platform adapters in `src/data/real/`, threshold calibration, visual features.
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
-```
-MIT License
-
-Copyright (c) 2026 Nabil Hassan Mohamed Ali
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+Code is licensed under the **Apache License 2.0**; see [LICENSE](LICENSE). The datasets used for training have their own licenses (TTCC and vRetention are research-use only) and are not covered by this license or redistributed here; see [docs/DATASETS.md](docs/DATASETS.md).

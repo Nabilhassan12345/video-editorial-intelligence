@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Applied Machine Learning & NLP intelligence layer for video pacing, retention forecasting, and editorial intelligence."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
     {name = "Nabil Hassan Mohamed Ali", email = "contact@example.com"}
 ]
