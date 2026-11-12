@@ -137,6 +137,9 @@ def main():
         shutil.rmtree(REPO)
     sh(["git", "clone", "--depth", "1", "-b", REPO_BRANCH, REPO_URL, REPO])
     sh([sys.executable, "-m", "pip", "install", "-q", "peft>=0.10.0", "datasets>=3.0", "scikit-learn", "pydantic>=2"])
+    # Kaggle images ship torchao 0.10, which recent PEFT rejects; without this LoRA injection fails and
+    # training silently falls back to a frozen encoder (heads only). Nothing here needs torchao.
+    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "-q", "torchao"], check=False)
     os.chdir(REPO)
     DATA.mkdir(parents=True, exist_ok=True)
     py = [sys.executable, "-m", "src.data.real.collect"]
@@ -173,6 +176,7 @@ def main():
     print(json.dumps(corpus, indent=2), flush=True)
     WORK.mkdir(parents=True, exist_ok=True)
     (WORK / "corpus_counts.json").write_text(json.dumps(corpus, indent=2))
+    shutil.copy(combined, WORK / "combined_kaggle.jsonl")  # private kernel output; reusable as an input later
 
     device = pick_device()
     ckpt = WORK / "editorial_model_kaggle"
@@ -180,6 +184,9 @@ def main():
     sh([sys.executable, "-m", "src.train", "--dataset-path", combined, "--epochs", EPOCHS,
         "--batch-size", BATCH_SIZE, "--device", device, "--output-dir", ckpt])
     train_s = time.time() - t_train
+    if not (ckpt / "adapter").exists():
+        raise RuntimeError("PEFT LoRA was not applied (no adapter/ in checkpoint); refusing to report a "
+                           "frozen-encoder run as LoRA. Check the training log for the PEFT warning.")
     sh([sys.executable, "-m", "src.evaluate", "--checkpoint-dir", ckpt, "--dataset-path", combined,
         "--device", device, "--output-dir", WORK / "reports"])
 
