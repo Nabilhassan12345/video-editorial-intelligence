@@ -26,11 +26,12 @@ Built as part of the **Microsoft Türkiye AI Innovators Internship Program 2026*
 6. [Quick Start](#quick-start)
 7. [Train it yourself (CPU, free Kaggle GPU, or Azure ML)](#train-it-yourself)
 8. [Project Structure](#project-structure)
-9. [Limitations](#limitations)
-10. [Roadmap](#roadmap)
-11. [Development History](#development-history)
-12. [Contributing](#contributing)
-13. [License](#license)
+9. [Related work](#related-work)
+10. [Limitations](#limitations)
+11. [Roadmap](#roadmap)
+12. [Development History](#development-history)
+13. [Contributing](#contributing)
+14. [License](#license)
 
 ---
 
@@ -298,6 +299,35 @@ video-editorial-intelligence/
 └── docs/                         # ARCHITECTURE, DATASETS, DATA_PIPELINE, EVALUATION, FINE_TUNING,
                                   # AZURE_MACHINE_LEARNING, AZURE_AI_FOUNDRY, DEPLOYMENT, REPRODUCIBILITY, PROJECT_OVERVIEW
 ```
+
+---
+
+## Related work
+
+Surveyed on GitHub and Hugging Face in November 2026 (star counts as of then). Descriptions are taken from each project's own README/card.
+
+**Open-source clipping tools** (find highlights, cut shorts; no trained retention model or published accuracy):
+
+| Project | Stars | License | What it does |
+|---|---|---|---|
+| [Anil-matcha/AI-Youtube-Shorts-Generator](https://github.com/Anil-matcha/AI-Youtube-Shorts-Generator) | ~6.0k | MIT | LLM highlight detection, long video to 9:16 shorts ("open-source alternative to Opus Clip") |
+| [ClipsAI/clipsai](https://github.com/ClipsAI/clipsai) | ~565 | MIT | Python library converting long videos into clips |
+| [VadlapatiKarthik/autoclipper](https://github.com/VadlapatiKarthik/autoclipper) | ~41 | none | Highlight detection from retention data, chat spikes and comments; FFmpeg + Whisper + upload |
+
+**Research code** (single paper/challenge, usually one dataset, no end-to-end tool):
+
+| Project | Focus |
+|---|---|
+| [dasongli1/SnapUGC_Engagement](https://github.com/dasongli1/SnapUGC_Engagement) | Engagement prediction of short videos (ECCV 2024, SnapUGC dataset) |
+| [sunwei925/LMM-EVQA](https://github.com/sunwei925/LMM-EVQA) | Winning solution, ICCV 2025 VQualA EVQA-SnapUGC engagement challenge |
+| [yaochenzhu/MMVED](https://github.com/yaochenzhu/MMVED) | Multimodal micro-video popularity prediction (WWW 2020) |
+| [sakana-juan/Video-Retention-Prediction](https://github.com/sakana-juan/Video-Retention-Prediction) | Attention-LSTM short-video retention prediction |
+
+**Datasets worth adding as adapters** (engagement, not per-second retention): [lingbow/tiktok-video-engagement-1m](https://huggingface.co/datasets/lingbow/tiktok-video-engagement-1m) (1,035,817 TikTok videos, daily engagement, CC BY-NC 4.0) and [Shofo/shofo-tiktok-general-small](https://huggingface.co/datasets/Shofo/shofo-tiktok-general-small) (50k TikTok videos with transcripts and engagement, custom license).
+
+**Commercial tools** (closed models, no published accuracy): Opus Clip, Vizard and Klap (clip "virality scores"); Dark UGC, Arcads and Creatify (generate UGC ads); Motion and Foreplay (post-spend creative analytics); vidIQ and TubeBuddy (YouTube optimisation).
+
+**What this project adds:** the projects above either cut clips, predict a single engagement score on one dataset, or are closed. We did not find another open-source project that combines (1) labels from **measured** per-second retention curves, (2) reusable adapters across several platforms (TTCC, vRetention, YouTube captions, TikTok hooks), (3) separate hook / drop-off / quality heads with group-aware, per-source evaluation, and (4) a full video-to-report pipeline with free-GPU and Azure ML / AI Foundry training paths.
 
 ---
 
