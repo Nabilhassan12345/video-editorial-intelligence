@@ -23,7 +23,7 @@ REPO_URL = os.environ.get("REPO_URL", "https://github.com/Nabilhassan12345/video
 REPO_BRANCH = os.environ.get("REPO_BRANCH", "devin/1794396833-antigravity-recovery")
 TTCC_LIMIT = int(os.environ.get("TTCC_LIMIT", "61789"))
 TTCC_MINUTES = float(os.environ.get("TTCC_MINUTES", "120"))
-TTCC_WORKERS = int(os.environ.get("TTCC_WORKERS", str(2 * (os.cpu_count() or 2))))
+TTCC_WORKERS = int(os.environ.get("TTCC_WORKERS", "6"))
 EPOCHS = int(os.environ.get("EPOCHS", "5"))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "64"))
 
@@ -69,6 +69,68 @@ def read_jsonl(path):
     return out
 
 
+def _rows(path: Path) -> int:
+    if not path.exists():
+        return 0
+    with open(path, "rb") as f:
+        return sum(1 for _ in f)
+
+
+def collect_ttcc_parallel(py, audio):
+    """Collect TTCC one parquet file per subprocess, TTCC_WORKERS at a time.
+
+    One file per process means a crashed/OOM-killed worker loses only that file (it is retried
+    once); subprocesses also isolate the known datasets-streaming teardown crash.
+    """
+    from huggingface_hub import HfApi
+
+    n_files = len([f for f in HfApi().list_repo_files("liangyuch/ttcc-v0_2_0", repo_type="dataset")
+                   if f.endswith(".parquet")])
+    env = dict(os.environ, USE_TF="0", USE_JAX="0", TOKENIZERS_PARALLELISM="false")
+    logs = WORK / "ttcc_logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    deadline = time.time() + TTCC_MINUTES * 60
+    queue = [(i, 0) for i in range(n_files)]
+    running = {}
+    done_rows, failed = 0, []
+    print(f"\n$ ttcc collection: {n_files} parquet files, {TTCC_WORKERS} workers, "
+          f"{TTCC_MINUTES:.0f} min budget", flush=True)
+    t0 = time.time()
+    while queue or running:
+        while queue and len(running) < TTCC_WORKERS and time.time() < deadline - 60:
+            i, attempt = queue.pop(0)
+            out = DATA / f"ttcc_kaggle_{i:03d}.jsonl"
+            remaining = max(1.0, (deadline - time.time()) / 60)
+            cmd = py + ["--source", "ttcc", "--limit", TTCC_LIMIT, "--no-transcribe",
+                        "--max-minutes", f"{remaining:.1f}", "--num-shards", n_files, "--shard-index", i,
+                        "--out", out, *audio]
+            log = open(logs / f"file_{i:03d}_try{attempt}.log", "w")
+            running[i] = (subprocess.Popen(list(map(str, cmd)), stdout=log, stderr=subprocess.STDOUT,
+                                           env=env), attempt, out, log)
+        if not running:
+            break
+        time.sleep(5)
+        for i in list(running):
+            proc, attempt, out, log = running[i]
+            if proc.poll() is None:
+                continue
+            log.close()
+            del running[i]
+            n = _rows(out)
+            if n == 0 and attempt == 0:
+                queue.append((i, 1))
+                print(f"  file {i}: 0 rows (exit {proc.returncode}), retrying", flush=True)
+                continue
+            if n == 0:
+                failed.append(i)
+            done_rows += n
+            print(f"  file {i}: {n} rows (exit {proc.returncode}); total {done_rows}, "
+                  f"{time.time() - t0:.0f}s", flush=True)
+    skipped = [i for i, _ in queue]
+    print(f"[ttcc collection: {done_rows} rows in {time.time() - t0:.0f}s; "
+          f"failed files {failed}; not started (budget) {skipped}]", flush=True)
+
+
 def main():
     t_start = time.time()
     if REPO.exists():
@@ -82,21 +144,7 @@ def main():
     sh(py + ["--source", "tiktok-hooks", "--limit", "46605", "--lang", "en", "--out", DATA / "hooks_full.jsonl"])
 
     audio = [] if shutil.which("ffmpeg") else ["--no-audio"]
-    # One subprocess per disjoint parquet shard; subprocesses also isolate the known
-    # datasets-streaming teardown crash, and each output file is flushed per line.
-    per_worker = -(-TTCC_LIMIT // TTCC_WORKERS)
-    t0 = time.time()
-    procs = []
-    for i in range(TTCC_WORKERS):
-        cmd = py + ["--source", "ttcc", "--limit", per_worker, "--no-transcribe",
-                    "--max-minutes", TTCC_MINUTES, "--num-shards", TTCC_WORKERS, "--shard-index", i,
-                    "--out", DATA / f"ttcc_kaggle_{i}.jsonl", *audio]
-        procs.append(subprocess.Popen(list(map(str, cmd)), stdout=subprocess.DEVNULL if i else None,
-                                      stderr=subprocess.STDOUT if i else None))
-    print(f"\n$ ttcc collection: {TTCC_WORKERS} parallel workers, {TTCC_MINUTES:.0f} min budget", flush=True)
-    for p in procs:
-        p.wait()
-    print(f"[ttcc collection done after {time.time() - t0:.0f}s]", flush=True)
+    collect_ttcc_parallel(py, audio)
 
     files = [DATA / "hooks_full.jsonl"] + sorted(DATA.glob("ttcc_kaggle_*.jsonl"))
     files += [Path(p) for p in sorted(glob.glob("/kaggle/input/**/*.jsonl", recursive=True))]

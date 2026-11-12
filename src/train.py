@@ -61,18 +61,32 @@ def split_dataset(
     other) so the test split contains positives and negatives whenever there are enough groups.
     """
     test_ratio = max(0.0, 1.0 - train_ratio - val_ratio)
-    groups: Dict[str, List[Dict]] = {}
-    text_to_group: Dict[str, str] = {}
+    # Union-find over group keys and exact texts: any two items linked through a shared
+    # group or a shared text (transitively) form one group and land in one split.
+    parent: Dict[str, str] = {}
+
+    def find(x: str) -> str:
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def tokens(item: Dict) -> List[str]:
+        toks = [t for t in (_group_key(item), str(item.get("text", ""))) if t]
+        return toks or [str(item.get("id"))]
+
     for item in data:
-        key = _group_key(item)
-        text = str(item.get("text", ""))
-        # Items from different groups (e.g. different ads) that share identical
-        # text must still land in one split — merge them under the first group seen.
-        if text and text in text_to_group:
-            key = text_to_group[text]
-        elif text:
-            text_to_group[text] = key
-        groups.setdefault(key, []).append(item)
+        toks = tokens(item)
+        root = find(toks[0])
+        for t in toks[1:]:
+            r = find(t)
+            if r != root:
+                parent[r] = root
+
+    groups: Dict[str, List[Dict]] = {}
+    for item in data:
+        groups.setdefault(find(tokens(item)[0]), []).append(item)
 
     strata: Dict[str, List[str]] = {}
     for key in sorted(groups):
