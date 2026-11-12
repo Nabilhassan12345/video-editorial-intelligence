@@ -32,6 +32,8 @@ def _iter_source(args):
                 transcribe=not args.no_transcribe,
                 whisper_model=args.whisper_model,
                 include_audio=not args.no_audio,
+                num_shards=args.num_shards,
+                shard_index=args.shard_index,
             ),
             {"dataset": DATASET_ID, "license": LICENSE_NOTE},
         )
@@ -76,6 +78,9 @@ def main(argv=None):
     p.add_argument("--sleep", type=float, default=1.0,
                    help="youtube: seconds to wait between caption requests")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--num-shards", type=int, default=1,
+                   help="ttcc: split the parquet files into N disjoint shards (for parallel workers)")
+    p.add_argument("--shard-index", type=int, default=0, help="ttcc: which shard this process reads")
     p.add_argument("--max-minutes", type=float, default=None,
                    help="stop collecting after this many minutes (output stays valid)")
     p.add_argument("--lang", type=str, default="en",

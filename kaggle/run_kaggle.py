@@ -7,7 +7,7 @@ Runs inside a Kaggle notebook/script with Internet + GPU enabled. Steps:
   4. train DistilBERT+LoRA on CUDA, evaluate on the group-aware held-out split
 Outputs land in /kaggle/working (checkpoint, reports, corpus counts). Raw data is not copied to outputs.
 
-Tunables (env vars): REPO_URL, REPO_BRANCH, TTCC_LIMIT, TTCC_MINUTES, EPOCHS, BATCH_SIZE.
+Tunables (env vars): REPO_URL, REPO_BRANCH, TTCC_LIMIT, TTCC_MINUTES, TTCC_WORKERS, EPOCHS, BATCH_SIZE.
 """
 import glob
 import json
@@ -22,7 +22,8 @@ from pathlib import Path
 REPO_URL = os.environ.get("REPO_URL", "https://github.com/Nabilhassan12345/video-editorial-intelligence.git")
 REPO_BRANCH = os.environ.get("REPO_BRANCH", "devin/1794396833-antigravity-recovery")
 TTCC_LIMIT = int(os.environ.get("TTCC_LIMIT", "61789"))
-TTCC_MINUTES = float(os.environ.get("TTCC_MINUTES", "240"))
+TTCC_MINUTES = float(os.environ.get("TTCC_MINUTES", "120"))
+TTCC_WORKERS = int(os.environ.get("TTCC_WORKERS", str(2 * (os.cpu_count() or 2))))
 EPOCHS = int(os.environ.get("EPOCHS", "5"))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "64"))
 
@@ -81,11 +82,23 @@ def main():
     sh(py + ["--source", "tiktok-hooks", "--limit", "46605", "--lang", "en", "--out", DATA / "hooks_full.jsonl"])
 
     audio = [] if shutil.which("ffmpeg") else ["--no-audio"]
-    # Subprocess isolates the known datasets-streaming teardown crash; output is flushed per line.
-    sh(py + ["--source", "ttcc", "--limit", TTCC_LIMIT, "--no-transcribe", "--max-minutes", TTCC_MINUTES,
-             "--out", DATA / "ttcc_kaggle.jsonl", *audio], check=False)
+    # One subprocess per disjoint parquet shard; subprocesses also isolate the known
+    # datasets-streaming teardown crash, and each output file is flushed per line.
+    per_worker = -(-TTCC_LIMIT // TTCC_WORKERS)
+    t0 = time.time()
+    procs = []
+    for i in range(TTCC_WORKERS):
+        cmd = py + ["--source", "ttcc", "--limit", per_worker, "--no-transcribe",
+                    "--max-minutes", TTCC_MINUTES, "--num-shards", TTCC_WORKERS, "--shard-index", i,
+                    "--out", DATA / f"ttcc_kaggle_{i}.jsonl", *audio]
+        procs.append(subprocess.Popen(list(map(str, cmd)), stdout=subprocess.DEVNULL if i else None,
+                                      stderr=subprocess.STDOUT if i else None))
+    print(f"\n$ ttcc collection: {TTCC_WORKERS} parallel workers, {TTCC_MINUTES:.0f} min budget", flush=True)
+    for p in procs:
+        p.wait()
+    print(f"[ttcc collection done after {time.time() - t0:.0f}s]", flush=True)
 
-    files = [DATA / "hooks_full.jsonl", DATA / "ttcc_kaggle.jsonl"]
+    files = [DATA / "hooks_full.jsonl"] + sorted(DATA.glob("ttcc_kaggle_*.jsonl"))
     files += [Path(p) for p in sorted(glob.glob("/kaggle/input/**/*.jsonl", recursive=True))]
     merged, seen = [], set()
     for path in files:

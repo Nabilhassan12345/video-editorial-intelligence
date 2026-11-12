@@ -13,4 +13,4 @@ python kaggle/launch.py fetch                  # -> kaggle_output/{editorial_mod
 ```
 
 The uploaded corpus dataset is **private**: TTCC and vRetention are research-use only.
-Tune via env vars in `kaggle/run_kaggle.py` (`TTCC_MINUTES`, `TTCC_LIMIT`, `EPOCHS`, `BATCH_SIZE`).
+Tune via env vars in `kaggle/run_kaggle.py` (`TTCC_MINUTES` default 120, `TTCC_WORKERS` default 2× CPU count — parallel workers over disjoint TTCC parquet shards, `TTCC_LIMIT`, `EPOCHS`, `BATCH_SIZE`).

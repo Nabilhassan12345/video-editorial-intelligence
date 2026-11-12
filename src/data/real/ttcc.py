@@ -68,6 +68,24 @@ def _fallback_text(row: Dict) -> str:
     return " ".join(p for p in parts if p)
 
 
+def _iter_streams(load_dataset, splits, num_shards: int, shard_index: int):
+    """Yield ``(split, streaming_dataset)`` pairs, optionally restricted to one shard of parquet files."""
+    if num_shards <= 1:
+        for split in splits:
+            # Sequential streaming: shuffling here would pull many parquet shards at once.
+            yield split, load_dataset(DATASET_ID, split=split, streaming=True)
+        return
+    from huggingface_hub import HfApi
+
+    files = sorted(
+        f for f in HfApi().list_repo_files(DATASET_ID, repo_type="dataset")
+        if f.endswith(".parquet") and f.rsplit("/", 1)[-1].split("-")[0] in splits
+    )
+    for path in files[shard_index::num_shards]:
+        split = path.rsplit("/", 1)[-1].split("-")[0]
+        yield split, load_dataset(DATASET_ID, data_files=path, split="train", streaming=True)
+
+
 def collect_ttcc(
     limit: int = 1000,
     transcribe: bool = True,
@@ -75,8 +93,14 @@ def collect_ttcc(
     splits: tuple = ("train", "val", "test"),
     include_audio: bool = True,
     progress_every: int = 50,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Iterator[Dict]:
-    """Stream collected samples from the TTCC corpus (no dataset files persisted)."""
+    """Stream collected samples from the TTCC corpus (no dataset files persisted).
+
+    With ``num_shards > 1`` only every ``num_shards``-th parquet file (offset ``shard_index``)
+    is read, so several processes can collect disjoint parts of the corpus in parallel.
+    """
     from datasets import load_dataset  # lazy: only needed when collecting
 
     extractor = AudioExtractor() if include_audio else None
@@ -84,11 +108,9 @@ def collect_ttcc(
     whisper = _load_whisper(whisper_model) if transcribe else None
 
     seen = 0
-    for split in splits:
+    for split, ds in _iter_streams(load_dataset, splits, num_shards, shard_index):
         if seen >= limit:
             break
-        # Sequential streaming: shuffling here would pull many parquet shards at once.
-        ds = load_dataset(DATASET_ID, split=split, streaming=True)
         for row in ds:
             if seen >= limit:
                 break
