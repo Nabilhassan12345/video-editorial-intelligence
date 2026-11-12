@@ -50,9 +50,33 @@ Evaluation: `python -m src.evaluate --checkpoint-dir checkpoints/editorial_model
 **How to read this honestly**
 
 - **Hook on TTCC improved slightly and is now calibrated:** ROC-AUC 0.66 vs 0.64 in v1, and F1 went from 0.00 to 0.38 (probabilities now cross 0.5). The 12k TikTok-hooks rows helped calibration more than ranking: within `tiktok_hooks` the hook ROC-AUC is only 0.53. Predicting which caption becomes an engagement outlier from text alone is close to chance.
-- **Within-source drop-off is about 0.62–0.64 ROC-AUC on TTCC/vRetention, below v1's 0.73 on TTCC alone.** Likely cause: v2 trained on the placeholder `drop_off_risk = 0` labels from `tiktok_hooks`. The training code now masks placeholder labels out of the drop-off loss (`drop_off_mask` in `src/data/dataset.py`); a retrain with the mask is the next run.
+- **Within-source drop-off is about 0.62–0.64 ROC-AUC on TTCC/vRetention, below v1's 0.73 on TTCC alone.** Likely cause: v2 trained on the placeholder `drop_off_risk = 0` labels from `tiktok_hooks`. The v3 ablation below tested this hypothesis by masking those labels out of the drop-off loss. It did **not** recover v1's number, so the hypothesis is not supported.
 - **Quality ranking within a source is weak (r 0.08–0.16).** The pooled r = 0.72/0.91 mostly comes from between-source mean differences. Per-segment labels (instead of whole-video AUC) are the most likely fix.
 - vRetention and the YouTube subset are ~98–100% hook-positive under the ≥20%-at-3s rule, so hook ROC-AUC there is undefined or noisy.
+
+### v3 ablation: masked drop-off loss (same data, same split)
+
+v3 retrains on the identical `combined_v2.jsonl` corpus and split, but `tiktok_hooks` rows no longer contribute to the drop-off loss (`drop_off_mask` in `src/data/dataset.py`, masked BCE in `src/models/multi_head_transformer.py`).
+Training: `python -m src.train --dataset-path data/real/combined_v2.jsonl --epochs 3 --batch-size 32 --output-dir checkpoints/editorial_model_v3` — CPU, 2,441 s, best epoch 2 (val loss 1.1954; not comparable to v2's 0.9127 because the drop-off term is now averaged over retention-labeled rows only). v2 trained 4 epochs, v3 3 epochs (2 effective), so this is not a perfectly controlled comparison.
+Evaluation: `python -m src.evaluate --checkpoint-dir checkpoints/editorial_model_v3 --dataset-path data/real/combined_v2.jsonl --output-dir reports/eval_v3`.
+
+| Source | Metric | v2 | v3 (masked) |
+| :--- | :--- | ---: | ---: |
+| ttcc (n=567) | Hook F1 / ROC-AUC | 0.3791 / 0.6627 | **0.4535** / 0.6560 |
+| ttcc | Drop-off ROC-AUC / PR-AUC | **0.6371** / 0.8148 | 0.6149 / 0.8138 |
+| ttcc | Quality RMSE / r | **0.9916** / 0.0789 | 1.0547 / 0.0939 |
+| vretention (n=293) | Drop-off ROC-AUC / PR-AUC | **0.6173 / 0.8720** | 0.5932 / 0.8547 |
+| vretention | Quality RMSE / r | **1.5922 / 0.1575** | 1.8025 / -0.0344 |
+| tiktok_hooks (n=1,907) | Hook ROC-AUC | 0.5337 | **0.5637** |
+| tiktok_hooks | Quality RMSE / r | 1.5269 / 0.1525 | **1.5037 / 0.2230** |
+| All retention-labeled (n=880) | Drop-off ROC-AUC | **0.6278** | 0.5991 |
+| Pooled (n=2,787) | Drop-off ROC-AUC | 0.9570 | 0.5160 |
+
+Findings:
+
+- **The pooled drop-off ROC-AUC of 0.957 in v2 was a shortcut.** Once the model stops being trained on the `tiktok_hooks` zeros, the pooled number collapses to 0.516, while the within-source numbers barely move. This confirms the pooled figure must not be quoted.
+- **Masking did not improve within-source drop-off** (TTCC 0.64 → 0.61, vRetention 0.62 → 0.59, within run-to-run noise for n≈300–570). The drop from v1's 0.73 is more likely due to the mixed corpus or text-only features than to the placeholder labels.
+- **Hook F1 on TTCC improved (0.38 → 0.45)**, quality on vRetention got worse. Net: mixed. **v2 stays the reference checkpoint**; v3 is kept as an ablation.
 
 ## Results v1 (1,500 TTCC ads — superseded)
 
