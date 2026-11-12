@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import json
+import time
 import logging
 import sys
 from pathlib import Path
@@ -75,6 +76,8 @@ def main(argv=None):
     p.add_argument("--sleep", type=float, default=1.0,
                    help="youtube: seconds to wait between caption requests")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--max-minutes", type=float, default=None,
+                   help="stop collecting after this many minutes (output stays valid)")
     p.add_argument("--lang", type=str, default="en",
                    help="tiktok-hooks: keep only hooks in this language")
     args = p.parse_args(argv)
@@ -86,13 +89,18 @@ def main(argv=None):
     out.parent.mkdir(parents=True, exist_ok=True)
 
     counts = {"written": 0, "transcribed": 0, "hook_positive": 0, "drop_off_positive": 0}
+    deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes else None
     with open(out, "w", encoding="utf-8") as f:
         for s in samples:
+            if deadline is not None and time.monotonic() > deadline:
+                logger.info("Time budget of %.0f min reached; stopping.", args.max_minutes)
+                break
             counts["written"] += 1
             counts["transcribed"] += int(bool(s.get("transcribed")))
             counts["hook_positive"] += int(s.get("hook_label") == 1.0)
             counts["drop_off_positive"] += int(s.get("drop_off_risk", 0) > 0.5)
             f.write(json.dumps(s) + "\n")
+            f.flush()
 
     meta = {
         **provenance,
