@@ -14,6 +14,10 @@
 
 Built as part of the **Microsoft Türkiye AI Innovators Internship Program 2026**, with the Python ML pipeline, real-data layer and Azure tooling added after the internship (see [Development History](#development-history)).
 
+
+<p align="center"><img src="docs/screenshots/app-tour.gif" width="800" alt="Landing page, dashboard, transcript analysis and model insights"></p>
+
+
 ---
 
 ## Table of Contents
